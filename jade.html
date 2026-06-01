@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trip configurator · Chile · Indonesia · Japan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+
+  :root {
+    --ink: #0E1614; --ink-soft: #182220; --ink-warm: #232D2A; --ink-warmer: #2E3835;
+    --ivory: #F5F0E8; --paper: #E0D6C2;
+    --rust: #C9532B; --rust-bright: #E8623A;
+    --sand: #C9A36B; --sand-bright: #E5BC7E;
+    --teal: #4A9CA5; --stone: #6F6A60; --stone-light: #9A9286;
+    --accent: #E8623A;
+    --hairline: rgba(245,240,232,0.08); --hairline-strong: rgba(245,240,232,0.18);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--ink); color:var(--ivory); font-family:'Inter',-apple-system,sans-serif; font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased; padding-bottom:72px; }
+  .mono { font-family:'JetBrains Mono',monospace; }
+
+  /* === LAYOUT === */
+  .layout { display:flex; min-height:100vh; }
+
+  /* SIDEBAR (desktop) */
+  .sidebar { width:220px; flex-shrink:0; position:sticky; top:0; height:100vh; background:rgba(14,22,20,0.97); border-right:1px solid var(--hairline); display:flex; flex-direction:column; padding:24px 0; z-index:60; backdrop-filter:blur(12px); }
+  .sidebar-brand { padding:0 20px 20px; border-bottom:1px solid var(--hairline); margin-bottom:14px; font-family:'Fraunces',serif; font-size:14px; font-weight:500; color:var(--stone-light); }
+  .sidebar-brand em { font-style:italic; }
+  .sidebar-label { font-size:9px; letter-spacing:0.3em; text-transform:uppercase; color:var(--stone); font-weight:700; padding:0 20px 10px; }
+  .dest-btn { width:100%; padding:13px 20px; background:transparent; border:none; border-left:3px solid transparent; cursor:pointer; color:var(--ivory); font-family:inherit; text-align:left; transition:all 0.2s; display:flex; flex-direction:column; gap:2px; }
+  .dest-btn:hover { background:var(--ink-soft); }
+  .dest-btn.active { background:var(--ink-warm); }
+  .dest-btn .d-name { font-family:'Fraunces',serif; font-weight:500; font-variation-settings:"opsz" 80; font-size:18px; letter-spacing:-0.01em; line-height:1; }
+  .dest-btn .d-name em { font-style:italic; }
+  .dest-btn .d-tag { font-size:11px; color:var(--stone-light); line-height:1.3; }
+  .dest-btn .d-cost { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--sand); margin-top:3px; }
+  .sidebar-bottom { margin-top:auto; padding:16px 20px 0; border-top:1px solid var(--hairline); }
+  .sidebar-tour-btn { width:100%; padding:9px 14px; background:transparent; border:1px solid var(--hairline-strong); border-radius:6px; color:var(--stone-light); font-family:inherit; font-size:12px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
+  .sidebar-tour-btn:hover { border-color:var(--sand); color:var(--sand); }
+
+  /* MOBILE TABS */
+  .mobile-tabs { display:none; position:fixed; top:0; left:0; right:0; z-index:60; background:rgba(14,22,20,0.97); border-bottom:1px solid var(--hairline); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+  .mobile-tabs-top { display:flex; align-items:center; padding:10px 16px; gap:10px; }
+  .mobile-brand { font-family:'Fraunces',serif; font-size:16px; font-weight:500; white-space:nowrap; flex-shrink:0; }
+  .mobile-brand em { font-style:italic; }
+  .mobile-tab-row { display:flex; border-top:1px solid var(--hairline); overflow-x:auto; scrollbar-width:none; }
+  .mobile-tab-row::-webkit-scrollbar { display:none; }
+  .mobile-tab { flex:1; min-width:90px; padding:9px 10px; background:transparent; border:none; border-bottom:2px solid transparent; cursor:pointer; color:var(--stone-light); font-family:inherit; font-size:12px; font-weight:600; white-space:nowrap; transition:all 0.2s; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .mobile-tab:hover { color:var(--ivory); background:var(--ink-soft); }
+  .mobile-tab.active { color:var(--ivory); background:var(--ink-warm); }
+  .mobile-tab .flag { font-size:17px; line-height:1; }
+  .mobile-tab-tour { padding:0 12px 0 4px; margin-left:auto; flex-shrink:0; display:flex; align-items:center; }
+  .mobile-tab-tour button { background:transparent; border:1px solid var(--hairline-strong); border-radius:100px; padding:5px 12px; color:var(--stone-light); font-family:inherit; font-size:11px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; transition:all 0.15s; }
+  .mobile-tab-tour button:hover { border-color:var(--sand); color:var(--sand); }
+  @media (max-width:860px) { .sidebar{display:none;} .mobile-tabs{display:block;} body{padding-top:96px;} }
+
+  /* MAIN */
+  .main { flex:1; min-width:0; }
+  .wrap { max-width:680px; margin:0 auto; padding:0 16px; }
+  @media (min-width:900px) { .wrap{padding:0 32px; max-width:740px;} }
+
+  /* DESTINATION PANELS */
+  .dest-panel { display:none; }
+  .dest-panel.active { display:block; }
+
+  /* HERO */
+  .hero { padding:44px 0 36px; }
+  .hero .eyebrow { font-size:10px; letter-spacing:0.28em; text-transform:uppercase; font-weight:700; color:var(--sand); margin-bottom:16px; }
+  .hero h1 { font-family:'Fraunces',serif; font-weight:300; font-variation-settings:"opsz" 144; font-size:clamp(40px,9vw,82px); line-height:0.95; letter-spacing:-0.03em; margin-bottom:18px; }
+  .hero h1 em { font-style:italic; color:var(--accent); display:block; }
+  .hero .lead { font-family:'Fraunces',serif; font-weight:300; font-size:15.5px; line-height:1.5; color:var(--stone-light); max-width:480px; margin-bottom:24px; }
+  .hero-stats { display:grid; grid-template-columns:1fr 1fr; gap:14px 20px; padding-top:18px; border-top:1px solid var(--hairline); max-width:420px; }
+  .hero-stats .item .label { font-size:10px; letter-spacing:0.22em; color:var(--stone-light); text-transform:uppercase; font-weight:600; margin-bottom:3px; }
+  .hero-stats .item .val { font-family:'Fraunces',serif; font-size:16px; color:var(--ivory); font-weight:500; }
+  .hero-stats .item .val em { color:var(--accent); font-style:italic; }
+
+  /* SECTIONS */
+  .section { padding:36px 0; border-top:1px solid var(--hairline); }
+  .section-head { margin-bottom:20px; }
+  .section-head .num { font-family:'Fraunces',serif; font-style:italic; color:var(--accent); font-size:13px; margin-right:5px; }
+  .section-head h2 { font-family:'Fraunces',serif; font-weight:400; font-variation-settings:"opsz" 144; font-size:clamp(24px,5vw,34px); line-height:1.05; letter-spacing:-0.02em; margin-bottom:5px; }
+  .section-head h2 em { font-style:italic; color:var(--accent); }
+  .section-head p { font-size:13px; color:var(--stone-light); line-height:1.5; max-width:500px; }
+
+  /* BUNDLES */
+  .bundles { display:flex; flex-direction:column; gap:9px; }
+  @media (min-width:700px) { .bundles{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;} }
+  .bundle { background:var(--ink-soft); border:1px solid var(--hairline); border-radius:8px; padding:14px; cursor:pointer; transition:all 0.2s; text-align:left; font-family:inherit; color:var(--ivory); position:relative; overflow:hidden; display:flex; flex-direction:column; gap:5px; }
+  .bundle:hover { border-color:var(--hairline-strong); background:var(--ink-warm); }
+  .bundle.active { border-color:var(--accent); background:var(--ink-warm); }
+  .bundle.active::before { content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent); }
+  .bundle .rec-tag { position:absolute; top:10px; right:10px; font-size:9px; letter-spacing:0.18em; color:var(--sand-bright); text-transform:uppercase; font-weight:700; }
+  .bundle .b-tag { font-size:10px; letter-spacing:0.22em; color:var(--stone-light); text-transform:uppercase; font-weight:600; }
+  .bundle h3 { font-family:'Fraunces',serif; font-weight:500; font-variation-settings:"opsz" 80; font-size:20px; line-height:1; letter-spacing:-0.015em; }
+  .bundle h3 em { font-style:italic; color:var(--accent); }
+  .bundle .b-detail { font-family:'Fraunces',serif; font-style:italic; font-weight:300; font-size:12px; color:var(--stone-light); }
+  .bundle .b-stats { display:flex; gap:14px; margin-top:3px; padding-top:9px; border-top:1px solid var(--hairline); }
+  .bundle .b-stats .stat .label { font-size:9px; letter-spacing:0.2em; color:var(--stone-light); text-transform:uppercase; font-weight:600; display:block; margin-bottom:2px; }
+  .bundle .b-stats .stat .val { font-family:'Fraunces',serif; font-size:14px; color:var(--sand-bright); font-weight:500; }
+
+  /* MAP */
+  .map-container { margin-top:10px; border:1px solid var(--hairline); border-radius:8px; overflow:hidden; }
+  .dest-map { width:100%; height:340px; background:#1a3340; }
+  @media (min-width:900px) { .dest-map{height:440px;} }
+  .map-legend { display:flex; flex-wrap:wrap; gap:10px; padding:9px 13px; background:var(--ink-soft); border-top:1px solid var(--hairline); font-size:11px; color:var(--stone-light); }
+  .map-legend .l-item { display:flex; align-items:center; gap:5px; }
+  .l-pin { width:10px; height:10px; border-radius:50%; background:var(--accent); border:1.5px solid var(--ivory); }
+  .l-pin.anchor { background:var(--sand-bright); width:12px; height:12px; }
+  .l-pin.fixed { background:var(--ink); border-color:var(--sand); }
+  .l-line { width:16px; height:2px; border-radius:2px; background:var(--accent); }
+  .l-line.dashed { background:repeating-linear-gradient(90deg,var(--teal) 0 3px,transparent 3px 6px); }
+
+  /* PHASES */
+  .phase-list { display:flex; flex-direction:column; gap:9px; }
+  .phase { background:var(--ink-soft); border:1px solid var(--hairline); border-radius:8px; overflow:hidden; transition:border-color 0.2s; }
+  .phase.is-on { border-color:var(--accent); }
+  .phase-summary { padding:14px; display:flex; align-items:center; gap:11px; cursor:pointer; list-style:none; -webkit-tap-highlight-color:transparent; }
+  .phase-summary::-webkit-details-marker { display:none; }
+  .phase-summary:hover { background:var(--ink-warm); }
+  details[open] .phase-summary { background:var(--ink-warm); border-bottom:1px solid var(--hairline); }
+  .phase-num { font-family:'Fraunces',serif; font-style:italic; font-size:18px; color:var(--accent); font-weight:400; width:26px; flex-shrink:0; }
+  .phase-info { flex:1; min-width:0; }
+  .phase-name { font-family:'Fraunces',serif; font-weight:500; font-variation-settings:"opsz" 80; font-size:17px; line-height:1.1; letter-spacing:-0.01em; }
+  .phase-meta { font-size:11.5px; color:var(--stone-light); margin-top:3px; display:flex; gap:8px; flex-wrap:wrap; }
+  .phase-meta .dot::before { content:"·"; margin-right:8px; color:var(--stone); }
+  .phase-meta .phase-status { color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:0.1em; font-size:9.5px; }
+  .phase.is-on .phase-meta .phase-status { color:var(--sand-bright); }
+  .phase-chev { width:18px; height:18px; flex-shrink:0; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23C9A36B' stroke-width='2.5' stroke-linecap='round'><path d='M6 9 l6 6 l6 -6'/></svg>"); background-repeat:no-repeat; background-position:center; transition:transform 0.25s; }
+  details[open] .phase-chev { transform:rotate(180deg); }
+  .phase-body { padding:4px 14px 14px; }
+  .phase-intro { font-family:'Fraunces',serif; font-weight:300; font-size:13px; line-height:1.55; color:var(--stone-light); padding:10px 0 12px; border-bottom:1px solid var(--hairline); margin-bottom:12px; }
+  .phase-intro em { font-style:italic; color:var(--accent); }
+  .phase-intro strong { color:var(--ivory); font-weight:500; }
+  .phase-toggle-btn { display:flex; align-items:center; gap:10px; width:100%; padding:9px 11px; margin-bottom:12px; background:var(--ink); border:1px solid var(--hairline-strong); border-radius:6px; cursor:pointer; color:var(--ivory); font-family:inherit; font-size:12px; transition:all 0.15s; }
+  .phase-toggle-btn:hover { border-color:var(--accent); }
+  .phase.is-on .phase-toggle-btn { background:rgba(201,83,43,0.08); border-color:var(--accent); }
+  .ptb-switch { width:32px; height:19px; border-radius:100px; background:var(--ink-warmer); position:relative; transition:background 0.2s; flex-shrink:0; }
+  .ptb-switch::after { content:""; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:var(--ivory); transition:transform 0.2s; }
+  .phase.is-on .ptb-switch { background:var(--accent); }
+  .phase.is-on .ptb-switch::after { transform:translateX(13px); }
+  .ptb-label { font-weight:600; font-size:12px; }
+  .ptb-help { font-size:11px; color:var(--stone-light); margin-left:auto; }
+  .activities { display:flex; flex-direction:column; gap:7px; }
+  .activity { display:grid; grid-template-columns:74px 1fr auto; gap:9px; align-items:stretch; background:var(--ink); border:1px solid var(--hairline); border-radius:6px; overflow:hidden; cursor:pointer; transition:all 0.15s; }
+  @media (min-width:700px) { .activity{grid-template-columns:92px 1fr auto;} }
+  .activity:hover { border-color:var(--hairline-strong); }
+  .activity.is-selected { border-color:var(--accent); background:rgba(201,83,43,0.06); }
+  .activity-photo { position:relative; overflow:hidden; background:linear-gradient(135deg,var(--ink-warm),var(--ink-soft)); min-height:72px; }
+  .activity-photo img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.4s; }
+  .activity-photo img.loaded { opacity:1; }
+  .activity-content { padding:9px 0; display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .activity-name { font-family:'Fraunces',serif; font-weight:500; font-variation-settings:"opsz" 80; font-size:13.5px; line-height:1.2; color:var(--ivory); }
+  .activity-desc { font-size:11px; color:var(--stone-light); line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .activity-bottom { display:flex; gap:8px; margin-top:4px; font-size:10px; align-items:center; }
+  .activity-bottom .days { color:var(--sand); font-weight:600; letter-spacing:0.05em; text-transform:uppercase; }
+  .activity-bottom .cost { font-family:'JetBrains Mono',monospace; color:var(--sand-bright); font-weight:500; }
+  .activity-check { align-self:center; justify-self:center; width:20px; height:20px; border-radius:4px; border:1.5px solid var(--stone); margin-right:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s; }
+  .activity.is-selected .activity-check { background:var(--accent); border-color:var(--accent); }
+  .activity-check::after { content:""; width:5px; height:10px; border:solid var(--ivory); border-width:0 2px 2px 0; transform:rotate(45deg) translate(-1px,-1px); opacity:0; transition:opacity 0.15s; }
+  .activity.is-selected .activity-check::after { opacity:1; }
+  .phase-footer { margin-top:12px; padding:10px 11px; background:var(--ink); border-radius:6px; display:flex; gap:18px; flex-wrap:wrap; }
+  .pf-item { display:flex; gap:6px; align-items:baseline; }
+  .pf-label { color:var(--stone-light); letter-spacing:0.1em; text-transform:uppercase; font-size:9px; font-weight:600; }
+  .pf-val { font-family:'Fraunces',serif; font-size:14px; font-weight:500; color:var(--sand-bright); }
+  .pf-val em { color:var(--accent); font-style:italic; }
+
+  /* SETTINGS */
+  .settings { display:flex; flex-direction:column; gap:9px; }
+  @media (min-width:700px) { .settings{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;} }
+  .setting { background:var(--ink-soft); border:1px solid var(--hairline); border-radius:8px; padding:13px; }
+  .setting>.label { font-size:10px; letter-spacing:0.28em; color:var(--sand); text-transform:uppercase; font-weight:700; margin-bottom:10px; }
+  .opt-list { display:flex; flex-direction:column; gap:3px; }
+  .opt { display:flex; align-items:flex-start; gap:9px; padding:8px; border-radius:5px; cursor:pointer; transition:background 0.15s; }
+  .opt:hover { background:var(--ink-warm); }
+  .radio { width:14px; height:14px; border-radius:50%; border:1.5px solid var(--stone); flex-shrink:0; margin-top:2px; position:relative; transition:all 0.15s; }
+  .opt.sel .radio { border-color:var(--accent); }
+  .opt.sel .radio::after { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--accent); }
+  .o-name { font-size:12px; font-weight:600; color:var(--ivory); margin-bottom:1px; }
+  .o-desc { font-size:11px; color:var(--stone-light); line-height:1.35; }
+
+  /* TOTAL BAR */
+  .totalbar { position:fixed; bottom:0; left:0; right:0; z-index:80; background:var(--ink); border-top:2px solid var(--accent); padding:10px 16px; display:flex; align-items:center; gap:14px; box-shadow:0 -8px 24px rgba(0,0,0,0.4); transition:transform 0.3s; height:54px; }
+  .totalbar.hidden { transform:translateY(100%); }
+  .tb-main { display:flex; align-items:baseline; gap:10px; flex:1; }
+  .tb-label { font-size:9px; letter-spacing:0.22em; color:var(--stone-light); text-transform:uppercase; font-weight:700; }
+  .tb-cost { font-family:'Fraunces',serif; font-weight:500; color:var(--sand-bright); font-size:20px; line-height:1; }
+  .tb-sub { font-size:12px; color:var(--stone-light); border-left:1px solid var(--hairline); padding-left:9px; margin-left:3px; }
+  .tb-sub em { color:var(--ivory); font-style:normal; font-weight:600; }
+  .scroll-top { background:transparent; color:var(--sand); border:1px solid var(--hairline-strong); width:32px; height:32px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; flex-shrink:0; font-size:14px; }
+  .scroll-top:hover { border-color:var(--sand); color:var(--sand-bright); }
+  @media (max-width:380px) { .tb-sub{display:none;} .tb-cost{font-size:18px;} }
+  @media (min-width:861px) { .totalbar{left:220px;} }
+
+  /* FOOTER */
+  .footer { padding:32px 0 16px; }
+  .footer p { font-family:'Fraunces',serif; font-style:italic; font-weight:300; color:var(--stone); font-size:12px; line-height:1.6; max-width:560px; }
+  .footer p strong { color:var(--stone-light); font-style:normal; font-weight:600; }
+
+  /* LEAFLET */
+  .marker-dot { width:22px; height:22px; border-radius:50%; color:var(--ivory); display:flex; align-items:center; justify-content:center; font-family:'Inter'; font-weight:700; font-size:10px; box-shadow:0 2px 8px rgba(0,0,0,0.6); border:2px solid var(--ivory); }
+  .marker-dot.anchor { width:30px; height:30px; background:var(--sand-bright) !important; color:var(--ink); font-size:14px; box-shadow:0 0 0 4px rgba(229,188,126,0.3),0 4px 12px rgba(0,0,0,0.6); }
+  .marker-dot.fixed { background:var(--ink) !important; color:var(--sand-bright); border-color:var(--sand); }
+  .leaflet-popup-content-wrapper { background:var(--ink-warm) !important; color:var(--ivory) !important; border-radius:6px !important; border:1px solid var(--hairline-strong) !important; }
+  .leaflet-popup-content { margin:11px 14px !important; font-family:'Inter' !important; font-size:12px !important; line-height:1.4 !important; }
+  .leaflet-popup-content strong { font-family:'Fraunces',serif; font-size:14px; display:block; margin-bottom:3px; font-weight:500; }
+  .leaflet-popup-content .pop-meta { font-size:10px; letter-spacing:0.18em; color:var(--sand); font-weight:700; text-transform:uppercase; margin-bottom:3px; display:block; }
+  .leaflet-popup-tip { background:var(--ink-warm) !important; }
+  .leaflet-control-zoom a { background:var(--ink-warm) !important; color:var(--ivory) !important; border-color:var(--hairline-strong) !important; }
+
+  /* TOUR */
+  .tour-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:998; display:none; pointer-events:none; }
+  .tour-highlight { position:absolute; border-radius:8px; box-shadow:0 0 0 3px var(--sand-bright),0 0 32px 8px rgba(229,188,126,0.75),0 0 0 9999px rgba(0,0,0,0.45); transition:opacity 0.2s,top 0.35s cubic-bezier(0.4,0,0.2,1),left 0.35s,width 0.35s,height 0.35s; pointer-events:none; z-index:999; opacity:0; display:none; top:0; left:0; width:0; height:0; }
+  .tour-trap { position:fixed; inset:0; z-index:1000; background:transparent; display:none; }
+  .tour-popup { position:fixed; bottom:0; left:0; right:0; background:var(--ink-warm); border-top:1px solid var(--hairline-strong); border-radius:16px 16px 0 0; padding:20px 20px 22px; box-shadow:0 -8px 32px rgba(0,0,0,0.5); z-index:1001; transform:translateY(100%); transition:transform 0.35s cubic-bezier(0.4,0,0.2,1); display:none; max-width:480px; margin:0 auto; }
+  .tour-active .tour-backdrop { display:block; }
+  .tour-active .tour-highlight { display:block; opacity:1; }
+  .tour-active .tour-trap { display:block; }
+  .tour-active .tour-popup { display:block; transform:translateY(0); }
+  .tour-handle { width:36px; height:4px; background:var(--hairline-strong); border-radius:100px; margin:0 auto 12px; }
+  .tour-step { font-size:10px; letter-spacing:0.28em; color:var(--sand); text-transform:uppercase; font-weight:700; margin-bottom:6px; }
+  .tour-popup h4 { font-family:'Fraunces',serif; font-weight:500; font-variation-settings:"opsz" 80; font-size:20px; line-height:1.1; margin-bottom:7px; letter-spacing:-0.015em; }
+  .tour-popup h4 em { font-style:italic; color:var(--accent); }
+  .tour-popup p { font-size:13px; color:var(--stone-light); line-height:1.5; margin-bottom:14px; }
+  .tour-actions { display:flex; align-items:center; gap:10px; }
+  .tour-skip { background:transparent; border:none; color:var(--stone-light); font-family:inherit; font-size:12px; cursor:pointer; padding:6px 0; }
+  .tour-next { margin-left:auto; background:var(--accent); color:var(--ivory); border:none; padding:10px 20px; border-radius:100px; font-family:inherit; font-size:12px; font-weight:600; cursor:pointer; transition:opacity 0.2s; min-width:88px; }
+  .tour-next:hover { opacity:0.88; }
+  .tour-dots { display:flex; gap:5px; align-items:center; }
+  .tour-dots .dot { width:6px; height:6px; border-radius:50%; background:var(--hairline-strong); transition:all 0.2s; }
+  .tour-dots .dot.active { background:var(--accent); width:16px; border-radius:100px; }
+
+  /* PER-DESTINATION ACCENTS */
+  .dest-panel[data-dest="chile"]     { --accent:#E8623A; }
+  .dest-panel[data-dest="indonesia"] { --accent:#FF7A47; }
+  .dest-panel[data-dest="japan"]     { --accent:#D94F7C; }
+  .dest-btn[data-dest="chile"].active     { border-left-color:#E8623A; }
+  .dest-btn[data-dest="indonesia"].active { border-left-color:#FF7A47; }
+  .dest-btn[data-dest="japan"].active     { border-left-color:#D94F7C; }
+  .dest-btn[data-dest="chile"] .d-name em     { color:#E8623A; }
+  .dest-btn[data-dest="indonesia"] .d-name em { color:#FF7A47; }
+  .dest-btn[data-dest="japan"] .d-name em     { color:#D94F7C; }
+  .mobile-tab[data-dest="chile"].active     { border-bottom-color:#E8623A; }
+  .mobile-tab[data-dest="indonesia"].active { border-bottom-color:#FF7A47; }
+  .mobile-tab[data-dest="japan"].active     { border-bottom-color:#D94F7C; }
+
+  /* === ADVANCED OPTIONS BLOCK === */
+  .advanced-block {
+    border-top: 1px solid var(--hairline);
+    margin-top: 0;
+  }
+  .advanced-summary {
+    display: flex; align-items: center; gap: 12px;
+    padding: 18px 0;
+    cursor: pointer; list-style: none;
+    -webkit-tap-highlight-color: transparent;
+    color: var(--stone-light);
+    transition: color 0.15s;
+  }
+  .advanced-summary::-webkit-details-marker { display: none; }
+  .advanced-summary:hover { color: var(--ivory); }
+  .adv-label {
+    font-family: 'Fraunces', serif; font-weight: 500;
+    font-variation-settings: "opsz" 80;
+    font-size: 16px; letter-spacing: -0.01em;
+    color: var(--ivory);
+  }
+  .adv-hint { font-size: 12px; color: var(--stone-light); }
+  .adv-chev {
+    width: 18px; height: 18px; flex-shrink: 0; margin-left: auto;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239A9286' stroke-width='2.5' stroke-linecap='round'><path d='M6 9 l6 6 l6 -6'/></svg>");
+    background-repeat: no-repeat; background-position: center;
+    transition: transform 0.25s;
+  }
+  details[open].advanced-block .adv-chev { transform: rotate(180deg); }
+  .advanced-body {
+    padding-bottom: 32px;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .advanced-body .section-head { border-top: 1px solid var(--hairline); padding-top: 28px !important; }
+
+  /* === TRIP SUMMARY === */
+  .trip-summary {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .ts-chapter {
+    background: var(--ink-soft); border: 1px solid var(--hairline);
+    border-radius: 8px; overflow: hidden;
+  }
+  .ts-chapter-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .ts-num { font-family: 'Fraunces', serif; font-style: italic; font-size: 16px; color: var(--accent); width: 22px; flex-shrink: 0; }
+  .ts-name { font-family: 'Fraunces', serif; font-weight: 500; font-variation-settings: "opsz" 80; font-size: 16px; letter-spacing: -0.01em; flex: 1; }
+  .ts-meta { font-size: 11px; color: var(--stone-light); }
+  .ts-items { padding: 8px 0; }
+  .ts-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 7px 14px;
+  }
+  .ts-item + .ts-item { border-top: 1px solid var(--hairline); }
+  .ts-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0; }
+  .ts-dot.anchor { background: var(--sand-bright); width: 8px; height: 8px; margin-top: 4px; }
+  .ts-iname { font-size: 13px; font-weight: 600; color: var(--ivory); }
+  .ts-idesc { font-size: 11.5px; color: var(--stone-light); line-height: 1.4; margin-top: 1px; }
+  .ts-icost { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sand); margin-top: 3px; }
+  .ts-empty { padding: 10px 14px; font-size: 12px; color: var(--stone); font-style: italic; font-family: 'Fraunces', serif; }
+
+</style>
+</head>
+<body>
+
+<!-- MOBILE TABS — outside .layout so it doesn't participate in flex row -->
+<div class="mobile-tabs">
+  <div class="mobile-tabs-top">
+    <div class="mobile-brand">Trip <em>configurator</em></div>
+    <div class="mobile-tab-tour"><button id="mobile-tour-btn">Tour</button></div>
+  </div>
+  <div class="mobile-tab-row">
+    <button class="mobile-tab active" data-dest="chile" onclick="switchDest('chile')"><span class="flag">🇨🇱</span>Chile</button>
+    <button class="mobile-tab" data-dest="indonesia" onclick="switchDest('indonesia')"><span class="flag">🇮🇩</span>Indo</button>
+    <button class="mobile-tab" data-dest="japan" onclick="switchDest('japan')"><span class="flag">🇯🇵</span>Japan</button>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- DESKTOP SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">Trip <em>configurator</em></div>
+    <div class="sidebar-label">Destinations</div>
+    <button class="dest-btn active" data-dest="chile" onclick="switchDest('chile')">
+      <div class="d-name">Chile <em>↓</em></div>
+      <div class="d-tag">Motorbikes · Patagonia</div>
+      <div class="d-cost" id="sb-cost-chile">A$—</div>
+    </button>
+    <button class="dest-btn" data-dest="indonesia" onclick="switchDest('indonesia')">
+      <div class="d-name">Indonesia <em>↗</em></div>
+      <div class="d-tag">Surf · Rinjani · Komodo</div>
+      <div class="d-cost" id="sb-cost-indonesia">A$—</div>
+    </button>
+    <button class="dest-btn" data-dest="japan" onclick="switchDest('japan')">
+      <div class="d-name">Japan <em>❄</em></div>
+      <div class="d-tag">BC skiing · powder · onsen</div>
+      <div class="d-cost" id="sb-cost-japan">A$—</div>
+    </button>
+    <div class="sidebar-bottom">
+      <button class="sidebar-tour-btn" id="sidebar-tour-btn">↗ Take tour</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- CHILE -->
+    <div class="dest-panel active" id="panel-chile" data-dest="chile">
+      <div class="wrap">
+        <section class="hero">
+          <div class="eyebrow">January 2027 · Adelaide → Patagonia</div>
+          <h1>One country.<em>End to end.</em></h1>
+          <p class="lead">A motorbike trip from Santiago to the southern ice fields. Configure your version below.</p>
+          <div class="hero-stats">
+            <div class="item"><div class="label">Distance</div><div class="val"><em>3,200+</em> km</div></div>
+            <div class="item"><div class="label">Latitudes</div><div class="val">33°S → 53°S</div></div>
+            <div class="item"><div class="label">From ADL</div><div class="val">~14 hr flight</div></div>
+            <div class="item"><div class="label">Season</div><div class="val">Patagonian summer</div></div>
+          </div>
+        </section>
+        <section class="section" data-tour-chile="bundles"><div class="section-head"><h2><span class="num">01</span>Pick a <em>bundle</em></h2><p>Pre-built trips. Pick one, then tweak everything below.</p></div><div class="bundles" id="chile-bundles-row"></div></section>
+        <section class="section" data-tour-chile="map"><div class="section-head"><h2><span class="num">02</span>The <em>route</em></h2><p>Pins for activities, solid lines for roads, dashed for flights.</p></div><div class="map-container"><div class="dest-map" id="map-chile"></div><div class="map-legend"><div class="l-item"><span class="l-pin anchor"></span>Trek anchor</div><div class="l-item"><span class="l-pin"></span>Activity</div><div class="l-item"><span class="l-pin fixed"></span>Fixed stop</div><div class="l-item"><span class="l-line"></span>Bike/drive</div><div class="l-item"><span class="l-line dashed"></span>Flight</div></div></div></section>
+        <section class="section" data-tour-chile="phases"><div class="section-head"><h2><span class="num">03</span>The <em>phases</em></h2><p>Tap to open. Toggle on/off. Pick activities inside.</p></div><div class="phase-list" id="chile-phase-list"></div></section>
+        <section class="section" data-tour-chile="settings"><div class="section-head"><h2><span class="num">04</span>The <em>variables</em></h2><p>Budget, group size, bikes. Each shifts the total.</p></div><div class="settings" id="chile-settings-grid"></div></section>
+        <section class="section" data-tour-chile="extensions"><div class="section-head"><h2><span class="num">05</span>Extra <em>add-ons</em></h2><p>Argentina + penguins. Independent of any phase.</p></div><div class="ext-grid" id="chile-extensions-grid"></div></section>
+        <div class="footer"><p>All figures AUD per person, group of four. <strong>Includes ADL return flight</strong> at A$2,500. Excludes insurance, vaccinations, gear, contingency. <strong>Photos and map</strong> need live internet — host on GitHub Pages or Cloudflare.</p></div>
+      </div>
+    </div>
+
+    <!-- INDONESIA -->
+    <div class="dest-panel" id="panel-indonesia" data-dest="indonesia">
+      <div class="wrap">
+        <section class="hero">
+          <div class="eyebrow">Dry season · Adelaide → the islands</div>
+          <h1>Six thousand islands.<em>Pick a few.</em></h1>
+          <p class="lead">From Bali warm-up to Komodo liveaboard, with Rinjani in between. Surf Lombok, dive the world's best reefs, hike a volcano at dawn.</p>
+          <div class="hero-stats">
+            <div class="item"><div class="label">Islands hit</div><div class="val"><em>4–8</em></div></div>
+            <div class="item"><div class="label">Distance</div><div class="val">~2,000 km E-W</div></div>
+            <div class="item"><div class="label">From ADL</div><div class="val">~6 hr to Bali</div></div>
+            <div class="item"><div class="label">Season</div><div class="val">Jul–Sep dry</div></div>
+          </div>
+        </section>
+        <section class="section" data-tour-indonesia="bundles"><div class="section-head"><h2><span class="num">01</span>Pick a <em>bundle</em></h2><p>Pre-built trips. Pick one, then tweak.</p></div><div class="bundles" id="indonesia-bundles-row"></div></section>
+        <section class="section" data-tour-indonesia="map"><div class="section-head"><h2><span class="num">02</span>The <em>route</em></h2><p>Solid lines = ground or boat. Dashed = inter-island flight.</p></div><div class="map-container"><div class="dest-map" id="map-indonesia"></div><div class="map-legend"><div class="l-item"><span class="l-pin anchor"></span>Trip anchor</div><div class="l-item"><span class="l-pin"></span>Activity</div><div class="l-item"><span class="l-pin fixed"></span>Island hub</div><div class="l-item"><span class="l-line"></span>Ground/boat</div><div class="l-item"><span class="l-line dashed"></span>Flight</div></div></div></section>
+        <section class="section" data-tour-indonesia="phases"><div class="section-head"><h2><span class="num">03</span>The <em>islands</em></h2><p>Four clusters, west to east. Toggle on/off, pick activities inside.</p></div><div class="phase-list" id="indonesia-phase-list"></div></section>
+        <section class="section" data-tour-indonesia="settings"><div class="section-head"><h2><span class="num">04</span>The <em>variables</em></h2><p>Budget, group size, how you move between islands.</p></div><div class="settings" id="indonesia-settings-grid"></div></section>
+        <section class="section" data-tour-indonesia="extensions"><div class="section-head"><h2><span class="num">05</span>Extra <em>add-ons</em></h2><p>Raja Ampat, Sumatra orangutans, Yogyakarta. Independent of any phase.</p></div><div class="ext-grid" id="indonesia-extensions-grid"></div></section>
+        <div class="footer"><p>All figures AUD per person, group of four. <strong>Includes ADL–Bali return</strong> at A$800 (Jul–Sep dry season). Excludes insurance, visa-on-arrival (~A$50), dive top-ups, tips. <strong>Photos and map</strong> need live internet.</p></div>
+      </div>
+    </div>
+
+    <!-- JAPAN -->
+    <div class="dest-panel" id="panel-japan" data-dest="japan">
+      <div class="wrap">
+        <section class="hero">
+          <div class="eyebrow">January 2027 · Tokyo → Hokkaido → home</div>
+          <h1>Ski hard.<em>Party harder.</em></h1>
+          <p class="lead">Two nights in Tokyo for sumo and bar chaos. Then a private chalet in Hokkaido — the world's best powder — for two weeks. The good skiers do backcountry. The rest do the groomers. Everyone meets at the bar by 5pm.</p>
+          <div class="hero-stats">
+            <div class="item"><div class="label">Group size</div><div class="val"><em>6–10</em> people</div></div>
+            <div class="item"><div class="label">Snowfall</div><div class="val">15 m / season</div></div>
+            <div class="item"><div class="label">From ADL</div><div class="val">~10 hr to Tokyo</div></div>
+            <div class="item"><div class="label">Sumo</div><div class="val">Jan 10–24 Tokyo</div></div>
+          </div>
+        </section>
+        <section class="section" data-tour-japan="bundles"><div class="section-head"><h2><span class="num">01</span>Pick a <em>bundle</em></h2><p>Three versions of the trip. Each pre-fills everything. Pick one, tweak in Advanced below.</p></div><div class="bundles" id="japan-bundles-row"></div></section>
+        <section class="section" data-tour-japan="map"><div class="section-head"><h2><span class="num">02</span>The <em>route</em></h2><p>Tokyo → Hokkaido → Furano → south. Updates with every choice.</p></div><div class="map-container"><div class="dest-map" id="map-japan"></div><div class="map-legend"><div class="l-item"><span class="l-pin anchor"></span>Anchor</div><div class="l-item"><span class="l-pin"></span>Activity</div><div class="l-item"><span class="l-pin fixed"></span>Hub</div><div class="l-item"><span class="l-line"></span>Ground/Shinkansen</div><div class="l-item"><span class="l-line dashed"></span>Flight</div></div></div></section>
+
+        <!-- TRIP SUMMARY (read-only, updates live) -->
+        <section class="section" id="japan-summary-section">
+          <div class="section-head"><h2><span class="num">03</span>Your <em>trip</em></h2><p>Based on your bundle. Open Advanced to customise.</p></div>
+          <div id="japan-trip-summary"></div>
+        </section>
+
+        <!-- ADVANCED OPTIONS (collapsed by default) -->
+        <details class="advanced-block" id="japan-advanced" data-tour-japan="phases">
+          <summary class="advanced-summary">
+            <span class="adv-label">Advanced options</span>
+            <span class="adv-hint">Customise phases, activities, budget, group size</span>
+            <div class="adv-chev"></div>
+          </summary>
+          <div class="advanced-body">
+            <div class="section-head" style="padding-top:20px;" data-tour-japan="phases"><h2><span class="num">→</span>The <em>chapters</em></h2><p>Tap to open, toggle on/off, pick activities.</p></div>
+            <div class="phase-list" id="japan-phase-list"></div>
+            <div class="section-head" style="padding-top:28px;" data-tour-japan="settings"><h2><span class="num">→</span>The <em>variables</em></h2><p>Budget, group size, getting around.</p></div>
+            <div class="settings" id="japan-settings-grid"></div>
+            <div class="section-head" style="padding-top:28px;" data-tour-japan="extensions"><h2><span class="num">→</span>Extra <em>add-ons</em></h2><p>Heli-skiing and Asahidake wilderness. Weather-dependent.</p></div>
+            <div class="ext-grid" id="japan-extensions-grid"></div>
+          </div>
+        </details>
+
+        <div class="footer"><p>All figures AUD per person, base group of six. <strong>Includes ADL–Tokyo return</strong> at A$1,100 (Jan peak). Excludes equipment hire (~A$60/day), lift passes (~A$80/day if not in bundle), alcohol, sumo tickets (buy separately at sumo.or.jp from Dec 6). Chalet prices are shared across the whole group — bigger group = cheaper per head. <strong>Book chalets 6–12 months ahead</strong> for Jan dates. Photos and map need live internet.</p></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- SHARED TOTAL BAR -->
+<div class="totalbar hidden" id="totalbar">
+  <div class="tb-main">
+    <div>
+      <div class="tb-label">Per Person</div>
+      <div class="tb-cost" id="tb-cost">A$—</div>
+    </div>
+    <div class="tb-sub"><em id="tb-days">— days</em> · group of <em id="tb-group">4</em></div>
+  </div>
+  <button class="scroll-top" id="scroll-top">↑</button>
+</div>
+
+<!-- TOUR -->
+<div class="tour-backdrop" id="tour-backdrop"></div>
+<div class="tour-highlight" id="tour-highlight"></div>
+<div class="tour-trap" id="tour-trap"></div>
+<div class="tour-popup" id="tour-popup">
+  <div class="tour-handle"></div>
+  <div class="tour-step" id="tour-step-num"></div>
+  <h4 id="tour-title"></h4>
+  <p id="tour-body"></p>
+  <div class="tour-actions">
+    <button class="tour-skip" id="tour-skip">Skip</button>
+    <div class="tour-dots" id="tour-dots"></div>
+    <button class="tour-next" id="tour-next">Next →</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+
+// =====================================================================
+// DESTINATION DATA
+// =====================================================================
+const DESTINATIONS = {
+
+chile: {
+  accent:'#E8623A', mapView:{center:[-44,-72.5],zoom:4},
+  intlFlight:2500, crossing:{on:1240,off:745}, transfers:310,
+  perday:{cheap:{accommodation:28,food:28},medium:{accommodation:85,food:80},expensive:{accommodation:225,food:150}},
+  bikeCosts:{buy:{3:1860,4:1550,5:1320,6:1165},rent:{3:3875,4:3410,5:3100,6:2790},none:{3:0,4:0,5:0,6:0}},
+  budgetDesc:{cheap:'Camping + hostels, self-cater. Saves most.',medium:'Mix of hostels & cabañas, half restaurants.',expensive:'Hotels nightly, restaurants, refugio half-board on trek.'},
+  groupDesc:{3:'Tight bike split. Easy to coordinate.',4:'Sweet spot. Clean 2-bike split. Recommended.',5:'Awkward bike split. Slightly cheaper per head.',6:'Cheapest per person. Hardest to coordinate.'},
+  bikeStrategy:{buy:{name:'Buy & resell',desc:'Used dual-sports via Santiago. ~A$1,550/person net loss.'},rent:{name:'Rent premium',desc:'KTM/BMW class. No paperwork. Costs more.'},none:{name:'No bikes',desc:'Buses + flights. Cheapest, least flexible.'}},
+  bikeLabel:'Motorbikes', p3DayBonus:8,
+  activities:{
+    valparaiso:   {name:'Valparaíso',days:1,coords:[-33.05,-71.62],cost:{cheap:60,medium:140,expensive:340},desc:'UNESCO hill town, street art, funiculars, Neruda house',wiki:'Valparaíso'},
+    colchagua:    {name:'Colchagua wine valley',days:1,coords:[-34.73,-71.24],cost:{cheap:95,medium:200,expensive:430},desc:'Vineyard tastings on the way south — Carmenère country',wiki:'Colchagua_Valley'},
+    pichilemu:    {name:'Pichilemu surf coast',days:2,coords:[-34.38,-72.01],cost:{cheap:155,medium:310,expensive:590},desc:'Punta de Lobos left point break, pisco sour sunsets',wiki:'Pichilemu'},
+    volcano:      {name:'Villarrica volcano',days:1,coords:[-39.42,-71.93],cost:{cheap:170,medium:250,expensive:400},desc:'5am crampons, active crater rim, ash slide descent',wiki:'Villarrica_(volcano)'},
+    termas:       {name:'Termas Geométricas',days:1,coords:[-39.64,-71.75],cost:{cheap:80,medium:125,expensive:265},desc:'17 volcanic hot pools in a forest gorge, open till 23:00',wiki:'Pucón'},
+    cochamo:      {name:'Cochamó Valley',days:3,coords:[-41.51,-72.31],cost:{cheap:235,medium:370,expensive:700},desc:'Chilean Yosemite — granite walls, gauchos, multi-day trek',wiki:'Cochamó_Valley'},
+    chiloe:       {name:'Chiloé Island',days:2,coords:[-42.48,-73.76],cost:{cheap:200,medium:390,expensive:745},desc:'UNESCO wooden churches, palafitos stilt houses, curanto feast',wiki:'Chiloé_Archipelago'},
+    futaleufu:    {name:'Futaleufú rafting',days:1,coords:[-43.18,-71.86],cost:{cheap:250,medium:340,expensive:590},desc:'World-class Class IV-V whitewater on turquoise river',wiki:'Futaleufú_River'},
+    queulat:      {name:'Queulat hanging glacier',days:1,coords:[-44.5,-72.6],cost:{cheap:60,medium:125,expensive:280},desc:'Glacier suspended off a cliff face with 200m waterfall',wiki:'Queulat_National_Park'},
+    marble:       {name:'Marble Caves',days:1,coords:[-46.62,-72.69],cost:{cheap:125,medium:215,expensive:430},desc:'Kayak inside swirling marble caves on turquoise lake',wiki:'General_Carrera_Lake'},
+    cerrocastillo:{name:'Cerro Castillo trek',days:5,coords:[-46.12,-72.16],cost:{cheap:390,medium:650,expensive:1165},desc:'The wilder, uncrowded 4-day alternative to Torres del Paine',wiki:'Cerro_Castillo_(Aysén)'},
+    torres_w:     {name:'Torres del Paine — W',days:5,coords:[-50.94,-72.98],cost:{cheap:775,medium:1475,expensive:2790},desc:'5-day classic: French Valley, Grey Glacier, Torres sunrise',exclusive:'trek',wiki:'Torres_del_Paine_National_Park'},
+    torres_o:     {name:'Torres del Paine — O Circuit',days:8,coords:[-50.94,-72.98],cost:{cheap:1240,medium:2170,expensive:3720},desc:'8-day full circuit, John Gardner Pass, back of the towers',exclusive:'trek',anchor:true,wiki:'Cordillera_del_Paine'},
+    glacier_ice:  {name:'Grey Glacier ice trek',days:0,concurrentWith:'torres_o',coords:[-50.97,-73.18],cost:{cheap:390,medium:495,expensive:700},desc:'Crampon onto the glacier itself, whisky on ice after',wiki:'Grey_Glacier'},
+    glacier_kayak:{name:'Grey Lake kayak',days:0,concurrentWith:'torres_o',coords:[-50.97,-73.18],cost:{cheap:155,medium:215,expensive:375},desc:'Half-day kayak among iceberg chunks',wiki:'Grey_Glacier'},
+    fitzroy:      {name:'El Chaltén / Fitz Roy',days:3,coords:[-49.33,-72.88],cost:{cheap:465,medium:805,expensive:1395},desc:'Argentina — Laguna de los Tres hike to Fitz Roy base',wiki:'Mount_Fitz_Roy'},
+    perito_moreno:{name:'Perito Moreno glacier',days:2,coords:[-50.48,-73.04],cost:{cheap:310,medium:590,expensive:1115},desc:'The only advancing glacier on earth, calving every 20 min',wiki:'Perito_Moreno_Glacier'},
+    penguins:     {name:'Magdalena Island penguins',days:1,coords:[-52.92,-70.57],cost:{cheap:125,medium:185,expensive:310},desc:'63,000 Magellanic penguins, January peak season',wiki:'Magdalena_Island_(Chile)'},
+  },
+  phases:{
+    p1:{num:'01',name:'Central Chile',tag:'Santiago, Valparaíso, wine, surf',activities:['valparaiso','colchagua','pichilemu'],intro:'Land in Santiago. Collect bikes. Ride west to Valparaíso for street art, south through wine country, finish at the surf coast.'},
+    p2:{num:'02',name:'Lake District',tag:'Volcanos, hot springs, granite walls',activities:['volcano','termas','cochamo','chiloe'],intro:'Active volcanos, geothermal pools, the Yosemite-like granite valley of Cochamó, and the wooden-church archipelago of Chiloé.'},
+    p3:{num:'03',name:'Carretera Austral',tag:'Bike 1,400km of dirt road',activities:['futaleufu','queulat','marble','cerrocastillo'],intro:'Chile\'s Ruta 7. Mostly gravel, 1,400km of fjords and ice fields. <strong>Phase ON:</strong> ride it. <strong>Phase OFF:</strong> fly Puerto Montt → Punta Arenas instead.'},
+    p4:{num:'04',name:'Torres del Paine',tag:'The anchor trek',activities:['torres_w','torres_o','glacier_ice','glacier_kayak'],intro:'Why we\'re here. W Trek (5 days) or O Circuit (8 days — book months ahead). Glacier add-ons fill the edges.'},
+  },
+  extensions:['fitzroy','perito_moreno','penguins'],
+  fixedStops:[
+    {id:'santiago',name:'Santiago',coords:[-33.4489,-70.6693],label:'A',desc:'Start. Land from Adelaide, collect bikes.'},
+    {id:'puerto_montt',name:'Puerto Montt',coords:[-41.4717,-72.9369],label:'B',desc:'End of bike phase.'},
+    {id:'natales',name:'Puerto Natales',coords:[-51.7236,-72.5070],label:'C',desc:'Trek gateway. Gear up.'},
+    {id:'punta_arenas',name:'Punta Arenas',coords:[-53.1638,-70.9171],label:'D',desc:'Finish. Fly home via Santiago.'},
+  ],
+  bundles:{
+    essential:{name:'Essential',tagline:'Two weeks, trek-focused',detail:'Patagonia priority',
+      state:{budget:'medium',groupSize:4,bike:'rent',phases:{p1:false,p2:true,p3:false,p4:true},selected:['volcano','torres_w','glacier_kayak','penguins']}},
+    classic:{name:'Classic',tagline:'Three weeks, balanced',detail:'The recommended pick',recommended:true,
+      state:{budget:'medium',groupSize:4,bike:'buy',phases:{p1:true,p2:true,p3:false,p4:true},selected:['valparaiso','pichilemu','volcano','termas','torres_o','glacier_ice','glacier_kayak','penguins','perito_moreno']}},
+    fullsend:{name:'Full Send',tagline:'Six weeks, everything',detail:'Carretera + Argentina',
+      state:{budget:'medium',groupSize:4,bike:'buy',phases:{p1:true,p2:true,p3:true,p4:true},selected:['valparaiso','colchagua','pichilemu','volcano','termas','cochamo','chiloe','futaleufu','queulat','marble','cerrocastillo','torres_o','glacier_ice','glacier_kayak','fitzroy','perito_moreno','penguins']}},
+  },
+  heroPhotos:{
+    valparaiso:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Vista_de_Valpara%C3%ADso_desde_el_Cerro_Concepci%C3%B3n.jpg/640px-Vista_de_Valpara%C3%ADso_desde_el_Cerro_Concepci%C3%B3n.jpg',
+    colchagua:'https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Vi%C3%B1edos_Apalta.JPG/640px-Vi%C3%B1edos_Apalta.JPG',
+    pichilemu:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Punta_de_Lobos%2C_Pichilemu.jpg/640px-Punta_de_Lobos%2C_Pichilemu.jpg',
+    volcano:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Volc%C3%A1n_Villarrica_y_lago_Villarrica.jpg/640px-Volc%C3%A1n_Villarrica_y_lago_Villarrica.jpg',
+    termas:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Termas_Geom%C3%A9tricas%2C_Chile.jpg/640px-Termas_Geom%C3%A9tricas%2C_Chile.jpg',
+    cochamo:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Cocham%C3%B3_valley_Chile.jpg/640px-Cocham%C3%B3_valley_Chile.jpg',
+    chiloe:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Palafitos_de_Castro%2C_Chilo%C3%A9.jpg/640px-Palafitos_de_Castro%2C_Chilo%C3%A9.jpg',
+    futaleufu:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Futaleuf%C3%BA_River.jpg/640px-Futaleuf%C3%BA_River.jpg',
+    queulat:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Ventisquero_Colgante_de_Queulat.jpg/640px-Ventisquero_Colgante_de_Queulat.jpg',
+    marble:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Capillas_de_M%C3%A1rmol_-_Chile_Chico.jpg/640px-Capillas_de_M%C3%A1rmol_-_Chile_Chico.jpg',
+    cerrocastillo:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Cerro_Castillo_-_Ays%C3%A9n.jpg/640px-Cerro_Castillo_-_Ays%C3%A9n.jpg',
+    torres_w:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Torres_del_Paine_from_Mirador_Nordenskj%C3%B6ld.jpg/640px-Torres_del_Paine_from_Mirador_Nordenskj%C3%B6ld.jpg',
+    torres_o:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Amanecer_en_Torres_del_Paine.JPG/640px-Amanecer_en_Torres_del_Paine.JPG',
+    glacier_ice:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Glaciar_Grey_-_Torres_del_Paine.jpg/640px-Glaciar_Grey_-_Torres_del_Paine.jpg',
+    glacier_kayak:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Lago_Grey_-_Torres_del_Paine_-_Patagonia_-_Chile_%2823689451550%29.jpg/640px-Lago_Grey_-_Torres_del_Paine_-_Patagonia_-_Chile_%2823689451550%29.jpg',
+    fitzroy:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Monte_Fitz_Roy.jpg/640px-Monte_Fitz_Roy.jpg',
+    perito_moreno:'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Perito_Moreno_Glacier_Patagonia_Argentina_Luca_Galuzzi_2005.JPG/640px-Perito_Moreno_Glacier_Patagonia_Argentina_Luca_Galuzzi_2005.JPG',
+    penguins:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Magellanic_Penguin_-_Isla_Magdalena_-_Patagonia_-_Chile.jpg/640px-Magellanic_Penguin_-_Isla_Magdalena_-_Patagonia_-_Chile.jpg',
+  },
+  tourSteps:[
+    {attr:'data-tour-chile',val:'bundles',title:'Start with a <em>bundle</em>',body:'Three pre-built Chile trips. Fills every choice below. Pick one, then tweak.'},
+    {attr:'data-tour-chile',val:'map',title:'See the <em>route</em>',body:'Pins for activities, lines for actual roads. Updates with every choice.'},
+    {attr:'data-tour-chile',val:'phases',title:'The <em>phases</em>',body:'Four chapters south. Toggle each on/off. Pick activities inside.'},
+    {attr:'data-tour-chile',val:'settings',title:'Tune the <em>variables</em>',body:'Budget, group size, motorbike strategy. Each shifts the total.'},
+    {attr:'data-tour-chile',val:'extensions',title:'Extra <em>add-ons</em>',body:'Argentina day trips + Magdalena penguins. Independent of any phase.'},
+  ],
+},
+
+indonesia: {
+  accent:'#FF7A47', mapView:{center:[-6,117],zoom:5},
+  intlFlight:800, crossing:{on:280,off:220}, transfers:180,
+  perday:{cheap:{accommodation:18,food:15},medium:{accommodation:65,food:35},expensive:{accommodation:220,food:90}},
+  bikeCosts:{buy:{3:280,4:260,5:240,6:220},rent:{3:520,4:480,5:450,6:430},none:{3:1450,4:1380,5:1320,6:1280}},
+  budgetDesc:{cheap:'Hostels + warungs. A$15 rooms, A$2 nasi goreng. Backpacker mode.',medium:'Mid-range villas + mix of restaurants. The Indonesia sweet spot.',expensive:'Resorts, beach clubs, fine dining. Bali villas at A$300/night.'},
+  groupDesc:{3:'Three friends. Fast moves, premium liveaboard cabins.',4:'Sweet spot. Villa splits + liveaboard cabin split. Recommended.',5:'Five. Liveaboard cabin awkward but villas scale well.',6:'Six. Cheapest per head on villas. Coordinate on boats.'},
+  bikeStrategy:{buy:{name:'Budget hop',desc:'Public ferries + AirAsia economy. Maximum savings, more wait time.'},rent:{name:'Standard mix',desc:'Fast boats + Garuda/Batik domestic flights. Sensible middle.'},none:{name:'All flights',desc:'Private speedboats + business class. Time-rich, money-light.'}},
+  bikeLabel:'Inter-island transport', p3DayBonus:1,
+  activities:{
+    ubud:       {name:'Ubud rice terraces',days:2,coords:[-8.5069,115.2625],cost:{cheap:70,medium:180,expensive:420},desc:'Tegallalang terraces at dawn, monkey forest, yoga and warungs',wiki:'Ubud'},
+    canggu:     {name:'Canggu beach clubs',days:2,coords:[-8.6510,115.1370],cost:{cheap:90,medium:240,expensive:580},desc:'Beach club crawl — La Brisa, Finns, Old Mans. Sunset cocktails on rice paddies',wiki:'Canggu'},
+    uluwatu:    {name:'Uluwatu surf & cliffs',days:2,coords:[-8.8290,115.0855],cost:{cheap:80,medium:210,expensive:510},desc:'World-class left at Padang Padang, cliff-top warungs, Kecak fire dance at temple',wiki:'Uluwatu_Temple'},
+    batur:      {name:'Mt Batur sunrise hike',days:1,coords:[-8.2422,115.3753],cost:{cheap:40,medium:75,expensive:145},desc:'2am start, 2hr climb, breakfast cooked on volcanic steam at the summit',wiki:'Mount_Batur'},
+    sidemen:    {name:'Sidemen valley',days:2,coords:[-8.4953,115.4502],cost:{cheap:65,medium:165,expensive:380},desc:'The Bali before Bali — quiet rice terrace stays, weaving villages, Mt Agung views',wiki:'Sidemen,_Karangasem'},
+    lombok_surf:{name:'Lombok surf — Kuta & Desert Pt',days:3,coords:[-8.9,116.275],cost:{cheap:195,medium:380,expensive:720},desc:'Kuta Lombok beaches, Are Guling, Desert Point if the swell fires. Less crowded than Bali',wiki:'Kuta,_Lombok'},
+    rinjani:    {name:'Mt Rinjani trek',days:3,coords:[-8.4119,116.4575],cost:{cheap:280,medium:420,expensive:780},desc:'3,726m, 3-day summit and crater lake trek. Tough, cold nights, extraordinary views',anchor:true,wiki:'Mount_Rinjani'},
+    gili_t:     {name:'Gili Trawangan',days:2,coords:[-8.3504,116.0394],cost:{cheap:110,medium:250,expensive:520},desc:'No cars, no motorbikes. Beach bars, full-moon parties, sea-turtle snorkelling',wiki:'Gili_Trawangan'},
+    gili_meno:  {name:'Gili Meno (the quiet one)',days:2,coords:[-8.3479,116.0529],cost:{cheap:95,medium:220,expensive:470},desc:'Quietest of the Gilis — snorkelling, underwater statues, no nightlife',wiki:'Gili_Meno'},
+    liveaboard: {name:'Komodo liveaboard (4d/3n)',days:4,coords:[-8.5594,119.4892],cost:{cheap:920,medium:1480,expensive:2780},desc:'3-night dive boat — Batu Bolong, Castle Rock, Manta Point. The centrepiece',anchor:true,wiki:'Komodo_National_Park'},
+    padar:      {name:'Padar Island viewpoint',days:0,concurrentWith:'liveaboard',coords:[-8.6444,119.5728],cost:{cheap:70,medium:130,expensive:250},desc:'The 3-bay panorama ridge — most photographed view in Indonesia',wiki:'Padar'},
+    pink_beach: {name:'Pink Beach + Rinca dragons',days:0,concurrentWith:'liveaboard',coords:[-8.6692,119.4944],cost:{cheap:65,medium:110,expensive:220},desc:'Snorkel coral at Pink Beach, walk among Komodo dragons on Rinca',wiki:'Komodo_dragon'},
+    kanawa:     {name:'Kanawa Island snorkel',days:0,concurrentWith:'liveaboard',coords:[-8.5278,119.7339],cost:{cheap:50,medium:95,expensive:180},desc:'Wall snorkel off Kanawa — pelagic fish, reef sharks if lucky',wiki:'Kanawa_Island'},
+    ijen:       {name:'Ijen blue fire',days:1,coords:[-8.0581,114.2425],cost:{cheap:70,medium:130,expensive:270},desc:'Midnight hike to the crater — electric-blue sulphur flames, turquoise acid lake at dawn',wiki:'Ijen'},
+    bromo:      {name:'Mt Bromo sunrise',days:2,coords:[-7.9425,112.9530],cost:{cheap:110,medium:220,expensive:460},desc:'Pre-dawn jeep to the viewpoint, then walk across the Sea of Sand to the crater rim',wiki:'Mount_Bromo'},
+    borobudur:  {name:'Borobudur & Prambanan',days:0,concurrentWith:'yogya',coords:[-7.6079,110.2038],cost:{cheap:95,medium:200,expensive:430},desc:'Sunrise at the world\'s largest Buddhist temple, Hindu Prambanan in the afternoon',wiki:'Borobudur'},
+    raja_ampat: {name:'Raja Ampat liveaboard',days:7,coords:[-0.5,130.5],cost:{cheap:2900,medium:4200,expensive:7800},desc:'Most biodiverse reef on earth, 7-day liveaboard from Sorong. The crown jewel.',wiki:'Raja_Ampat_Islands'},
+    orangutans: {name:'Sumatra orangutans (Bukit Lawang)',days:3,coords:[3.5575,98.1244],cost:{cheap:380,medium:580,expensive:980},desc:'Fly to Medan, jungle trek in Gunung Leuser, see Sumatran orangutans in the wild',wiki:'Bukit_Lawang'},
+    yogya:      {name:'Yogyakarta street life',days:2,coords:[-7.7956,110.3695],cost:{cheap:85,medium:180,expensive:380},desc:'Java\'s cultural heart — batik workshops, Sultan\'s palace, Malioboro street food crawl',wiki:'Yogyakarta'},
+  },
+  phases:{
+    p1:{num:'01',name:'Bali · the warm-up',tag:'Ubud, Canggu, Uluwatu, Sidemen',activities:['ubud','canggu','uluwatu','batur','sidemen'],intro:'Land Denpasar. Easy first phase. Rice terraces in Ubud, beach clubs in Canggu, surf at Uluwatu. Bali sets the tone — it gets quieter and wilder from here.'},
+    p2:{num:'02',name:'Lombok & the Gilis',tag:'Surf, Rinjani trek, island life',activities:['lombok_surf','rinjani','gili_t','gili_meno'],intro:'Fast boat from Bali. <strong>Rinjani</strong> is the anchor — 3 days, hard, extraordinary. Less crowded surf at Kuta Lombok. Then island-hop the Gilis to recover.'},
+    p3:{num:'03',name:'Komodo & Flores',tag:'Liveaboard diving, dragons, pink sand',activities:['liveaboard','padar','pink_beach','kanawa'],intro:'Fly to Labuan Bajo. <strong>Liveaboard is the centrepiece</strong> — 3 nights on a dive boat through Komodo National Park. Day trips fill the edges.'},
+    p4:{num:'04',name:'Java · the volcanoes',tag:'Ijen blue fire, Bromo sunrise, temples',activities:['ijen','bromo','borobudur'],intro:'Fly to Surabaya or Yogyakarta. Two pre-dawn volcano starts. Optional Borobudur + Prambanan temples. The cinematic ending.'},
+  },
+  extensions:['raja_ampat','orangutans','yogya'],
+  fixedStops:[
+    {id:'denpasar',name:'Denpasar (Bali)',coords:[-8.6705,115.2126],label:'A',desc:'Start. Land from Adelaide.'},
+    {id:'lombok',name:'Lombok',coords:[-8.5630,116.3514],label:'B',desc:'Fast boat or short flight from Bali.'},
+    {id:'labuan_bajo',name:'Labuan Bajo',coords:[-8.4869,119.8775],label:'C',desc:'Komodo gateway. Liveaboards depart here.'},
+    {id:'yogyakarta',name:'Yogyakarta',coords:[-7.7956,110.3695],label:'D',desc:'Java hub. Fly home via Denpasar.'},
+  ],
+  bundles:{
+    essential:{name:'Essential',tagline:'Two weeks · Bali + Komodo',detail:'The classic combo',
+      state:{budget:'medium',groupSize:4,bike:'rent',phases:{p1:true,p2:false,p3:true,p4:false},selected:['ubud','canggu','uluwatu','liveaboard','padar']}},
+    classic:{name:'Classic',tagline:'Three weeks · the full loop',detail:'The recommended pick',recommended:true,
+      state:{budget:'medium',groupSize:4,bike:'rent',phases:{p1:true,p2:true,p3:true,p4:true},selected:['ubud','uluwatu','sidemen','lombok_surf','rinjani','gili_t','liveaboard','padar','ijen','bromo']}},
+    fullsend:{name:'Full Send',tagline:'Five weeks · everything',detail:'Add Raja Ampat + Sumatra',
+      state:{budget:'medium',groupSize:4,bike:'rent',phases:{p1:true,p2:true,p3:true,p4:true},selected:['ubud','canggu','uluwatu','batur','sidemen','lombok_surf','rinjani','gili_t','gili_meno','liveaboard','padar','pink_beach','kanawa','ijen','bromo','borobudur','raja_ampat','orangutans','yogya']}},
+  },
+  heroPhotos:{
+    ubud:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Tegalalang_Rice_Terrace.jpg/640px-Tegalalang_Rice_Terrace.jpg',
+    canggu:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Batu_Bolong_Temple_Canggu_Bali.jpg/640px-Batu_Bolong_Temple_Canggu_Bali.jpg',
+    uluwatu:'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fd/Uluwatu_Temple_Bali.jpg/640px-Uluwatu_Temple_Bali.jpg',
+    batur:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Mount_Batur_at_sunrise.jpg/640px-Mount_Batur_at_sunrise.jpg',
+    sidemen:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Sidemen_Bali_Indonesia.jpg/640px-Sidemen_Bali_Indonesia.jpg',
+    lombok_surf:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Kuta_Beach%2C_Lombok.jpg/640px-Kuta_Beach%2C_Lombok.jpg',
+    rinjani:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Mount_Rinjani_from_Senaru.jpg/640px-Mount_Rinjani_from_Senaru.jpg',
+    gili_t:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Gili_Trawangan_Lombok_Indonesia.jpg/640px-Gili_Trawangan_Lombok_Indonesia.jpg',
+    gili_meno:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Gili_Meno_Indonesia.jpg/640px-Gili_Meno_Indonesia.jpg',
+    liveaboard:'https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Komodo_Island.jpg/640px-Komodo_Island.jpg',
+    padar:'https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Padar_Island%2C_Komodo_National_Park.jpg/640px-Padar_Island%2C_Komodo_National_Park.jpg',
+    pink_beach:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Pink_beach_Komodo.jpg/640px-Pink_beach_Komodo.jpg',
+    kanawa:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Kanawa_Island.jpg/640px-Kanawa_Island.jpg',
+    ijen:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Kawah_Ijen_Blue_Fire.jpg/640px-Kawah_Ijen_Blue_Fire.jpg',
+    bromo:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Mount_Bromo_at_sunrise%2C_showing_three_of_the_Tengger_massif%27s_five_volcanoes.jpg/640px-Mount_Bromo_at_sunrise%2C_showing_three_of_the_Tengger_massif%27s_five_volcanoes.jpg',
+    borobudur:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Borobudur-Nothwest-view.jpg/640px-Borobudur-Nothwest-view.jpg',
+    raja_ampat:'https://upload.wikimedia.org/wikipedia/commons/thumb/d/dc/Raja_Ampat_Islands.jpg/640px-Raja_Ampat_Islands.jpg',
+    orangutans:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Orang_Utan%2C_Semenggok_Forest_Reserve%2C_Sarawak%2C_Borneo%2C_Malaysia.JPG/640px-Orang_Utan%2C_Semenggok_Forest_Reserve%2C_Sarawak%2C_Borneo%2C_Malaysia.JPG',
+    yogya:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Malioboro_Jogja.jpg/640px-Malioboro_Jogja.jpg',
+  },
+  tourSteps:[
+    {attr:'data-tour-indonesia',val:'bundles',title:'Pick a <em>bundle</em>',body:'Three Indonesia trips. Each fills everything below. Pick one, then tweak.'},
+    {attr:'data-tour-indonesia',val:'map',title:'See the <em>route</em>',body:'Pins for activities. Solid = ground or boat. Dashed = inter-island flight.'},
+    {attr:'data-tour-indonesia',val:'phases',title:'Pick your <em>islands</em>',body:'Four clusters west to east. Toggle on/off, pick activities inside.'},
+    {attr:'data-tour-indonesia',val:'settings',title:'Tune the <em>variables</em>',body:'Budget, group size, how you move between islands.'},
+    {attr:'data-tour-indonesia',val:'extensions',title:'The <em>big detours</em>',body:'Raja Ampat, Sumatra orangutans, Yogyakarta. Independent of any phase.'},
+  ],
+},
+
+japan: {
+  accent:'#D94F7C', mapView:{center:[40.5,138],zoom:5},
+  intlFlight:1100, crossing:{on:280,off:200}, transfers:200,
+  perday:{cheap:{accommodation:60,food:40},medium:{accommodation:180,food:80},expensive:{accommodation:480,food:180}},
+  // bikeCosts here = "getting around" per person: JR Pass + shuttles / JR Pass + van / private transfers
+  bikeCosts:{buy:{3:420,4:380,5:350,6:320},rent:{3:680,4:600,5:560,6:520},none:{3:1400,4:1260,5:1160,6:1080}},
+  budgetDesc:{
+    cheap:'Shared lodge rooms + convenience store meals + resort shuttles. Works, no frills.',
+    medium:'Private chalet hire split across the group + izakayas every night. The sweet spot.',
+    expensive:'Luxury chalet with butler + onsen ryokan finisher + private transfers everywhere.',
+  },
+  groupDesc:{
+    3:'Three. Tight but works. Chalet split is expensive per head.',
+    4:'Sweet spot. Private chalet split well, minivan fits gear.',
+    5:'Five is great for chalet hire — cost per head drops sharply.',
+    6:'Six to ten is the ideal group size. One big house, costs plummet.',
+  },
+  bikeStrategy:{
+    buy: {name:'JR Pass + resort shuttles', desc:'14-day JR Pass (~A$820pp) covers bullet trains + Hokkaido local lines. Resort shuttles fill the gaps.'},
+    rent:{name:'JR Pass + van hire',        desc:'Van gives freedom for BC drop-offs and Nagano day trips off the rail network. Recommended.'},
+    none:{name:'Private transfers',         desc:'Chauffeured minibus door-to-door. Zero gear logistics, maximum cost.'},
+  },
+  bikeLabel:'Getting around Japan', p3DayBonus:1,
+
+  activities:{
+    // === CHAPTER 1: TOKYO ARRIVAL ===
+    sumo: {
+      name:'Grand Sumo at Ryogoku Kokugikan',
+      days:1, coords:[35.6966,139.7938],
+      cost:{cheap:60,medium:120,expensive:320},
+      desc:'Jan 10–24, 2027. The opening tournament of the year at Tokyo\'s 10,000-seat sumo hall. Tatami box seats (¥40k/4 people) or arena seats from ¥3,500. Buy tickets from Dec 6 at sumo.or.jp. Chanko nabe hotpot restaurants line the streets outside.',
+      wiki:'Ryōgoku_Kokugikan',
+    },
+    golden_gai: {
+      name:'Golden Gai + Omoide Yokocho night',
+      days:1, coords:[35.6938,139.7034],
+      cost:{cheap:60,medium:130,expensive:260},
+      desc:'Six narrow alleys, 200+ tiny bars in Shinjuku — each seats maybe eight people, each has its own personality. Then Omoide Yokocho (Memory Lane) for smoky yakitori skewers under the train tracks. Bar hop until 3am. This is Tokyo.',
+      wiki:'Golden_Gai',
+    },
+    karaoke: {
+      name:'Karaoke box + ramen night',
+      days:0.5, coords:[35.6936,139.7032],
+      cost:{cheap:30,medium:65,expensive:130},
+      desc:'Private karaoke room for the group — own bar, no strangers, full commitment required. Then late-night tonkotsu ramen in a 6-seat counter. Standard Tokyo Tuesday.',
+      wiki:'Karaoke_in_Japan',
+    },
+
+    // === CHAPTER 2: HOKKAIDO (the main event) ===
+    chalet_niseko: {
+      name:'Private chalet hire — Hirafu, Niseko',
+      days:7, coords:[42.8060,140.6873],
+      cost:{cheap:400,medium:980,expensive:2600},
+      desc:'Hire out a full house in Hirafu. 6–10 beds, private onsen, drying room, ski storage, walking distance to lifts and bars. NISADE, H2Life and Japan Ski Experience all have properties. Book 6–12 months ahead. Per-person cost drops dramatically with group size.',
+      anchor:true,
+      wiki:'Niseko',
+    },
+    niseko_resort: {
+      name:'Niseko resort skiing (groomed)',
+      days:0, concurrentWith:'chalet_niseko', coords:[42.7950,140.6820],
+      cost:{cheap:220,medium:360,expensive:620},
+      desc:'Niseko United: four interconnected resorts (Grand Hirafu, Hanazono, Village, Annupuri). 30+ lifts, 50% of runs are green/blue. Perfect for mixed ability groups — intermediate and beginner skiers can ski all day from the same chalet.',
+      wiki:'Niseko_United',
+    },
+    niseko_bc: {
+      name:'Niseko backcountry — guided laps',
+      days:0, concurrentWith:'chalet_niseko', coords:[42.8001,140.6878],
+      cost:{cheap:480,medium:840,expensive:1760},
+      desc:'Guided BC off the back of Annupuri and Higashiyama with certified guides. Untracked tree runs and powder bowls — no one here after 3pm. The best in the group\'s lives. Book Niseko Powder guides or Hokkaido Backcountry Club.',
+      anchor:true,
+      wiki:'Niseko',
+    },
+    furano: {
+      name:'Furano — 5 days, second chalet',
+      days:5, coords:[43.3537,142.3791],
+      cost:{cheap:420,medium:890,expensive:2200},
+      desc:'Fly or drive 3hrs east for Act 2. The deepest consistent powder in Japan — north course tree runs are world-famous for untracked stashes days after storms. Smaller resort, half the crowds, same quality snow. Hire a house and repeat. Après at Furano Delice, soba at local spots.',
+      wiki:'Furano_Ski_Area',
+    },
+    asahidake: {
+      name:'Asahidake — one day, true wilderness BC',
+      days:0, concurrentWith:'furano', coords:[43.6628,142.8549],
+      cost:{cheap:260,medium:460,expensive:920},
+      desc:'1hr from Furano. Ropeway to 1,600m then skin into Daisetsuzan National Park. Japan\'s most remote accessible backcountry — no resort infrastructure, no other people. For the group\'s best skiers only. Guide mandatory.',
+      wiki:'Asahidake',
+    },
+    apres_hirafu: {
+      name:'Niseko après scene — Hirafu',
+      days:0, coords:[42.8060,140.6880],
+      cost:{cheap:50,medium:120,expensive:280},
+      desc:'Bar Gyu+ (enter through a fridge door, best whisky in Hokkaido), Magic Mountain (DJ sets, cocktails, dancing), Wild Bill\'s (live music, dance floor). This is where the chalet group reunites after splitting on the mountain. Nights end in late-night ramen or Seicomart onigiri.',
+      wiki:'Niseko',
+    },
+    heli_hokkaido: {
+      name:'Heli-skiing — Daisetsuzan drops',
+      days:0, concurrentWith:'chalet_niseko', coords:[43.5,142.5],
+      cost:{cheap:1100,medium:1500,expensive:2400},
+      desc:'6–8 helicopter drops into Daisetsuzan National Park. Complete solitude — no lift access to these zones. The best skiers only. Hokkaido Backcountry Club or Niseko Powder guides run the operation. Weather-dependent.',
+      wiki:'Daisetsuzan_National_Park',
+    },
+
+    // === CHAPTER 3: TRANSIT + MONKEYS ===
+    snow_monkeys: {
+      name:'Jigokudani snow monkeys + Shibu Onsen',
+      days:1, coords:[36.6317,138.4698],
+      cost:{cheap:55,medium:90,expensive:180},
+      desc:'Wild Japanese macaques bathing in geothermal hot springs surrounded by snow. The only primates on earth to do this. 40km from Nagano: train to Yudanaka, bus, 25-min walk through cedar forest. Combine with Shibu Onsen — a lantern-lit village with nine public baths. One slow day between mountain chapters.',
+      wiki:'Jigokudani_Monkey_Park',
+    },
+    nozawa: {
+      name:'Nozawa Onsen — one night stay',
+      days:1, coords:[36.9272,138.4472],
+      cost:{cheap:130,medium:260,expensive:540},
+      desc:'The most atmospheric ski village in Japan. Free public onsen baths on every corner, narrow lanes, wooden ryokans. The January Fire Festival (Dosojin Fire Festival) runs Jan 15. One night, one pub crawl, one perfect bowl of soba.',
+      wiki:'Nozawa_Onsen',
+    },
+
+    // === CHAPTER 4: KYOTO EXIT ===
+    kyoto_exit: {
+      name:'Kyoto exit day — temples, dumplings, done',
+      days:1, coords:[35.0116,135.7681],
+      cost:{cheap:90,medium:180,expensive:400},
+      desc:'Fushimi Inari shrine at dawn — a tunnel of 10,000 torii gates with no crowds in January. Nishiki Market for gyoza and pickles. Philosopher\'s Path under snow. Half-day then Shinkansen to Tokyo for the flight home. The perfect landing after two weeks of hard skiing.',
+      wiki:'Kyoto',
+    },
+  },
+
+  phases:{
+    p1:{
+      num:'01', name:'Tokyo — wired in',
+      tag:'Sumo, Golden Gai, karaoke chaos',
+      activities:['sumo','golden_gai','karaoke'],
+      intro:'Land Narita or Haneda. Two nights in Tokyo before the flight to Sapporo. The January sumo tournament runs Jan 10–24 at Ryogoku — time your arrival around it. Golden Gai for bar-hopping, karaoke for team bonding. Arrive wired.',
+    },
+    p2:{
+      num:'02', name:'Niseko — the main event',
+      tag:'Private chalet, BC + resort, après',
+      activities:['chalet_niseko','niseko_resort','niseko_bc','apres_hirafu'],
+      intro:'Fly Haneda → New Chitose (1.5hrs, ~¥15,000). Private chalet in Hirafu — everyone together in one house. The good skiers do BC in the morning, everyone does resort runs in the afternoon, the whole group reconvenes at Bar Gyu+ by 5pm. Repeat for 7 days.',
+    },
+    p3:{
+      num:'03', name:'Furano — act two',
+      tag:'Second chalet, deeper powder, wilder trees',
+      activities:['furano','asahidake'],
+      intro:'Hire a second chalet in Furano (3hrs drive or domestic flight). Same format, different mountain. Less international crowd, equally good powder, better soba. Asahidake for the keeners on a clear day — one of the great backcountry days on earth.',
+    },
+    p4:{
+      num:'04', name:'Wind down — monkeys, Nozawa, Kyoto',
+      tag:'Snow monkeys, onsen village, temple + dumplings',
+      activities:['snow_monkeys','nozawa','kyoto_exit'],
+      intro:'Shinkansen south. One afternoon with the snow monkeys at Jigokudani (wild macaques in hot springs surrounded by snow). One night in Nozawa Onsen. Then Kyoto for a half-day before the flight home. The trip\'s exhale.',
+    },
+  },
+
+  extensions:['heli_hokkaido','asahidake'],
+  fixedStops:[
+    {id:'tokyo',     name:'Tokyo',           coords:[35.6762,139.6503], label:'A', desc:'Land from Adelaide. 2 nights, sumo + Golden Gai.'},
+    {id:'sapporo',   name:'Sapporo / Niseko', coords:[42.8060,140.6873], label:'B', desc:'Fly Tokyo → CTS. Chalet in Hirafu village.'},
+    {id:'furano',    name:'Furano',           coords:[43.3537,142.3791], label:'C', desc:'3hr drive or short flight from Sapporo.'},
+    {id:'kyoto',     name:'Nagano / Kyoto',   coords:[36.6513,138.1810], label:'D', desc:'Shinkansen south. Monkeys → Nozawa → Kyoto → home.'},
+  ],
+
+  bundles:{
+    essential:{
+      name:'Powder hit',
+      tagline:'10 days · Tokyo + Niseko only',
+      detail:'The no-fuss version',
+      state:{budget:'medium',groupSize:6,bike:'rent',phases:{p1:true,p2:true,p3:false,p4:false},
+             selected:['sumo','golden_gai','chalet_niseko','niseko_resort','niseko_bc','apres_hirafu']},
+    },
+    classic:{
+      name:'The Classic',
+      tagline:'Three weeks · full arc',
+      detail:'Tokyo → Niseko → Furano → monkeys → Kyoto',
+      recommended:true,
+      state:{budget:'medium',groupSize:6,bike:'rent',phases:{p1:true,p2:true,p3:true,p4:true},
+             selected:['sumo','golden_gai','karaoke','chalet_niseko','niseko_resort','niseko_bc','apres_hirafu','furano','snow_monkeys','nozawa','kyoto_exit']},
+    },
+    fullsend:{
+      name:'No Days Off',
+      tagline:'Four weeks · every experience',
+      detail:'Add heli + Asahidake wilderness',
+      state:{budget:'expensive',groupSize:6,bike:'none',phases:{p1:true,p2:true,p3:true,p4:true},
+             selected:['sumo','golden_gai','karaoke','chalet_niseko','niseko_resort','niseko_bc','apres_hirafu','heli_hokkaido','furano','asahidake','snow_monkeys','nozawa','kyoto_exit']},
+    },
+  },
+
+  heroPhotos:{
+    sumo:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Sumo_2009.jpg/640px-Sumo_2009.jpg',
+    golden_gai:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Shinjuku_Golden_Gai_Alley.jpg/640px-Shinjuku_Golden_Gai_Alley.jpg',
+    karaoke:'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Karaoke_box_room.jpg/640px-Karaoke_box_room.jpg',
+    chalet_niseko:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Niseko_chalet_winter.jpg/640px-Niseko_chalet_winter.jpg',
+    niseko_resort:'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Niseko_Grand_Hirafu.jpg/640px-Niseko_Grand_Hirafu.jpg',
+    niseko_bc:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Niseko_powder_skiing.jpg/640px-Niseko_powder_skiing.jpg',
+    furano:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/Furano_ski_area_Japan.jpg/640px-Furano_ski_area_Japan.jpg',
+    asahidake:'https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Asahidake_Daisetsuzan.jpg/640px-Asahidake_Daisetsuzan.jpg',
+    apres_hirafu:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Niseko_Hirafu_night.jpg/640px-Niseko_Hirafu_night.jpg',
+    heli_hokkaido:'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Heliskiing.jpg/640px-Heliskiing.jpg',
+    snow_monkeys:'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Jigokudani07s3200.jpg/640px-Jigokudani07s3200.jpg',
+    nozawa:'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Nozawa_Onsen_ski_resort.jpg/640px-Nozawa_Onsen_ski_resort.jpg',
+    kyoto_exit:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Fushimi_inari_taisha_snow.jpg/640px-Fushimi_inari_taisha_snow.jpg',
+  },
+
+  tourSteps:[
+    {attr:'data-tour-japan',val:'bundles',title:'Pick a <em>bundle</em>',body:'Three versions of the Japan trip. Each fills everything below. Powder hit, full arc, or no days off.'},
+    {attr:'data-tour-japan',val:'map',title:'The <em>route</em>',body:'Tokyo to land. Fly to Hokkaido for the main event. Shinkansen south through monkeys and Nozawa. Kyoto exit.'},
+    {attr:'data-tour-japan',val:'phases',title:'Four <em>chapters</em>',body:'Tokyo wired in → Niseko chalet → Furano act two → slow wind-down south. Toggle and pick.'},
+    {attr:'data-tour-japan',val:'settings',title:'Tune the <em>details</em>',body:'Budget, group size, getting around. Bigger group = cheaper chalet per head. The sweet spot is 6–10.'},
+    {attr:'data-tour-japan',val:'extensions',title:'The <em>add-ons</em>',body:'Heli-skiing into Daisetsuzan. Asahidake wilderness BC. Both optional and weather-dependent.'},
+  ],
+},
+
+}; // end DESTINATIONS
+
+// =====================================================================
+// ENGINE
+// =====================================================================
+
+let activeDest = 'chile';
+let state = {};
+let activeBundle = 'classic';
+let openPhases = {};
+const leafletMaps = {};
+const mapMarkers = {};
+const mapLines = {};
+const photoLoadedSet = new Set();
+
+// ------ SWITCH DEST ------
+function switchDest(id) {
+  if (id === activeDest) return;
+  document.getElementById('panel-' + activeDest).classList.remove('active');
+  document.querySelectorAll('[data-dest="' + activeDest + '"]').forEach(b => b.classList.remove('active'));
+  activeDest = id;
+  document.getElementById('panel-' + id).classList.add('active');
+  document.querySelectorAll('[data-dest="' + id + '"]').forEach(b => b.classList.add('active'));
+  document.getElementById('totalbar').style.borderTopColor = DESTINATIONS[id].accent;
+  document.getElementById('panel-' + id).querySelector('.wrap').scrollIntoView({behavior:'smooth',block:'start'});
+  if (!openPhases[id]) openPhases[id] = new Set([Object.keys(DESTINATIONS[id].phases)[0]]);
+  const rec = Object.entries(DESTINATIONS[id].bundles).find(([,b]) => b.recommended)?.[0] || Object.keys(DESTINATIONS[id].bundles)[0];
+  activeBundle = rec;
+  state = toState(DESTINATIONS[id].bundles[rec]);
+  buildAll(id);
+  initMap(id);
+  updateSidebarCosts();
+  updateTotalbar();
+  history.replaceState(null, '', '#' + id);
+}
+
+function toState(b) {
+  return { budget:b.state.budget, groupSize:b.state.groupSize, bike:b.state.bike, phases:{...b.state.phases}, selected:new Set(b.state.selected) };
+}
+
+// ------ TOTALS ------
+function computeTotals(id, st) {
+  const d = DESTINATIONS[id];
+  let days = 2;
+  if (st.phases.p3) days += d.p3DayBonus; else days += 1;
+  st.selected.forEach(aid => {
+    const a = d.activities[aid];
+    // Skip concurrent activities — their days are subsumed by the parent
+    if (a.concurrentWith && st.selected.has(a.concurrentWith)) return;
+    days += a.days;
+  });
+  days = Math.round(days);
+  let activities = 0;
+  st.selected.forEach(aid => { activities += d.activities[aid].cost[st.budget]; });
+  const bike = d.bikeCosts[st.bike][st.groupSize];
+  const crossing = st.phases.p3 ? d.crossing.on : d.crossing.off;
+  const accom = days * d.perday[st.budget].accommodation;
+  const food = days * d.perday[st.budget].food;
+  const total = d.intlFlight + bike + crossing + accom + food + d.transfers + activities;
+  return { days, total };
+}
+
+// ------ TRIP SUMMARY (Japan read-only view) ------
+function buildTripSummary(id) {
+  const el = document.getElementById(id + '-trip-summary');
+  if (!el) return;
+  const dest = DESTINATIONS[id];
+  const html = Object.entries(dest.phases).map(([pid, phase]) => {
+    const isOn = state.phases[pid];
+    const acts = isOn ? phase.activities.filter(aid => state.selected.has(aid)) : [];
+    let pDays = 0, pCost = 0;
+    acts.forEach(aid => {
+      const a = dest.activities[aid];
+      if (!a.concurrentWith || !state.selected.has(a.concurrentWith)) pDays += a.days;
+      pCost += a.cost[state.budget];
+    });
+    return `
+      <div class="ts-chapter">
+        <div class="ts-chapter-head">
+          <span class="ts-num">${phase.num}</span>
+          <span class="ts-name">${phase.name}</span>
+          <span class="ts-meta">${isOn ? `${pDays}d · A$${pCost.toLocaleString()}` : 'skipped'}</span>
+        </div>
+        <div class="ts-items">
+          ${acts.length ? acts.map(aid => {
+            const a = dest.activities[aid];
+            return `<div class="ts-item">
+              <div class="ts-dot${a.anchor?' anchor':''}"></div>
+              <div>
+                <div class="ts-iname">${a.name}</div>
+                <div class="ts-idesc">${a.desc.split('.')[0]}.</div>
+                <div class="ts-icost">${a.days}d · A$${a.cost[state.budget].toLocaleString()}/person</div>
+              </div>
+            </div>`;
+          }).join('') : `<div class="ts-empty">Phase not included</div>`}
+        </div>
+      </div>`;
+  }).join('');
+  el.innerHTML = `<div class="trip-summary">${html}</div>`;
+}
+
+// ------ BUILD ALL ------
+function buildAll(id) {
+  buildBundles(id);
+  buildPhases(id);
+  buildSettings(id);
+  buildExtensions(id);
+  buildTripSummary(id);
+  render(id);
+}
+
+// ------ BUNDLES ------
+function buildBundles(id) {
+  const dest = DESTINATIONS[id];
+  const row = document.getElementById(id + '-bundles-row');
+  if (!row) return;
+  row.innerHTML = Object.entries(dest.bundles).map(([bid, b]) => {
+    const t = computeTotals(id, toState(b));
+    const isActive = activeBundle === bid && activeDest === id;
+    return `<button class="bundle${isActive?' active':''}" data-bundle="${bid}" data-dest="${id}">
+      ${b.recommended ? '<div class="rec-tag">★ Pick</div>' : ''}
+      <div class="b-tag">${b.tagline}</div>
+      <h3>The <em>${b.name}</em></h3>
+      <div class="b-detail">${b.detail}</div>
+      <div class="b-stats">
+        <div class="stat"><span class="label">Days</span><span class="val">${t.days}</span></div>
+        <div class="stat"><span class="label">Per Person</span><span class="val">A$${Math.round(t.total).toLocaleString()}</span></div>
+      </div></button>`;
+  }).join('');
+  row.querySelectorAll('.bundle').forEach(btn => btn.addEventListener('click', () => {
+    activeBundle = btn.dataset.bundle;
+    state = toState(dest.bundles[activeBundle]);
+    buildAll(id);
+  }));
+}
+
+// ------ PHASES ------
+function buildPhases(id) {
+  const dest = DESTINATIONS[id];
+  const root = document.getElementById(id + '-phase-list');
+  if (!root) return;
+  if (!openPhases[id]) openPhases[id] = new Set([Object.keys(dest.phases)[0]]);
+  root.innerHTML = Object.entries(dest.phases).map(([pid, phase]) => {
+    const isOn = state.phases[pid];
+    const isOpen = openPhases[id].has(pid);
+    let pDays = 0, pCost = 0;
+    phase.activities.forEach(aid => {
+      if (state.selected.has(aid)) {
+        const a = dest.activities[aid];
+        // Only add days if not concurrent with another selected activity
+        if (!a.concurrentWith || !state.selected.has(a.concurrentWith)) pDays += a.days;
+        pCost += a.cost[state.budget];
+      }
+    });
+    const sel = phase.activities.filter(a => state.selected.has(a)).length;
+    return `<details class="phase${isOn?' is-on':''}"${isOpen?' open':''} data-pid="${pid}">
+      <summary class="phase-summary">
+        <span class="phase-num">${phase.num}</span>
+        <div class="phase-info">
+          <div class="phase-name">${phase.name}</div>
+          <div class="phase-meta">
+            <span class="phase-status">${isOn?'ON':'OFF'}</span>
+            ${isOn?`<span class="dot">${pDays}d · A$${pCost.toLocaleString()}</span><span class="dot">${sel}/${phase.activities.length} picked</span>`:`<span class="dot">${phase.tag}</span>`}
+          </div>
+        </div>
+        <div class="phase-chev"></div>
+      </summary>
+      <div class="phase-body">
+        <p class="phase-intro">${phase.intro}</p>
+        <button class="phase-toggle-btn" data-toggle="${pid}">
+          <div class="ptb-switch"></div>
+          <span class="ptb-label">${isOn?'Phase included':'Phase excluded'}</span>
+          <span class="ptb-help">${isOn?'Tap to remove':'Tap to include'}</span>
+        </button>
+        ${isOn ? `<div class="activities">${phase.activities.map(aid => actHTML(aid, dest, id)).join('')}</div>
+        <div class="phase-footer">
+          <div class="pf-item"><span class="pf-label">Days</span><span class="pf-val">${pDays}</span></div>
+          <div class="pf-item"><span class="pf-label">Activity cost</span><span class="pf-val"><em>A$${pCost.toLocaleString()}</em></span></div>
+        </div>` : ''}
+      </div></details>`;
+  }).join('');
+  root.querySelectorAll('details').forEach(d => d.addEventListener('toggle', () => {
+    if (d.open) openPhases[id].add(d.dataset.pid); else openPhases[id].delete(d.dataset.pid);
+  }));
+  root.querySelectorAll('[data-toggle]').forEach(el => el.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const pid = el.dataset.toggle;
+    state.phases[pid] = !state.phases[pid];
+    if (!state.phases[pid]) dest.phases[pid].activities.forEach(a => state.selected.delete(a));
+    activeBundle = null;
+    buildAll(id);
+  }));
+  root.querySelectorAll('[data-act]').forEach(el => el.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    toggleAct(el.dataset.act, dest, id);
+  }));
+  loadPhotos(root, dest, id);
+}
+
+function actHTML(aid, dest, did) {
+  const a = dest.activities[aid];
+  const sel = state.selected.has(aid);
+  return `<div class="activity${sel?' is-selected':''}" data-act="${aid}">
+    <div class="activity-photo" data-pid="${aid}" data-did="${did}"><img alt="${a.name}" /></div>
+    <div class="activity-content">
+      <div class="activity-name">${a.name}</div>
+      <div class="activity-desc">${a.desc}</div>
+      <div class="activity-bottom"><span class="days">${a.days}d</span><span class="cost">A$${a.cost[state.budget].toLocaleString()}</span></div>
+    </div>
+    <div class="activity-check"></div></div>`;
+}
+
+function toggleAct(aid, dest, id) {
+  const excl = dest.activities[aid].exclusive;
+  if (state.selected.has(aid)) { state.selected.delete(aid); }
+  else {
+    state.selected.add(aid);
+    if (excl) Object.entries(dest.activities).forEach(([oid, a]) => { if (oid !== aid && a.exclusive === excl) state.selected.delete(oid); });
+  }
+  activeBundle = null;
+  buildAll(id);
+}
+
+// ------ SETTINGS ------
+function buildSettings(id) {
+  const dest = DESTINATIONS[id];
+  const root = document.getElementById(id + '-settings-grid');
+  if (!root) return;
+  root.innerHTML = `
+    <div class="setting"><div class="label">Budget tier</div><div class="opt-list">
+      ${['cheap','medium','expensive'].map(b => `<div class="opt${state.budget===b?' sel':''}" data-set="budget" data-val="${b}"><div class="radio"></div><div><div class="o-name">${b[0].toUpperCase()+b.slice(1)}</div><div class="o-desc">${dest.budgetDesc[b]}</div></div></div>`).join('')}
+    </div></div>
+    <div class="setting"><div class="label">Group size</div><div class="opt-list">
+      ${[3,4,5,6].map(n => `<div class="opt${state.groupSize===n?' sel':''}" data-set="group" data-val="${n}"><div class="radio"></div><div><div class="o-name">${n} people</div><div class="o-desc">${dest.groupDesc[n]}</div></div></div>`).join('')}
+    </div></div>
+    <div class="setting"><div class="label">${dest.bikeLabel}</div><div class="opt-list">
+      ${Object.entries(dest.bikeStrategy).map(([k,v]) => `<div class="opt${state.bike===k?' sel':''}" data-set="bike" data-val="${k}"><div class="radio"></div><div><div class="o-name">${v.name}</div><div class="o-desc">${v.desc}</div></div></div>`).join('')}
+    </div></div>`;
+  root.querySelectorAll('[data-set]').forEach(el => el.addEventListener('click', () => {
+    const k = el.dataset.set, v = el.dataset.val;
+    if (k==='budget') state.budget = v;
+    if (k==='group') state.groupSize = +v;
+    if (k==='bike') state.bike = v;
+    activeBundle = null;
+    buildAll(id);
+  }));
+}
+
+// ------ EXTENSIONS ------
+function buildExtensions(id) {
+  const dest = DESTINATIONS[id];
+  const root = document.getElementById(id + '-extensions-grid');
+  if (!root) return;
+  root.innerHTML = dest.extensions.map(aid => actHTML(aid, dest, id)).join('');
+  root.querySelectorAll('[data-act]').forEach(el => el.addEventListener('click', e => {
+    e.preventDefault();
+    toggleAct(el.dataset.act, dest, id);
+  }));
+  loadPhotos(root, dest, id);
+}
+
+// ------ PHOTOS ------
+function loadPhotos(root, dest, id) {
+  root.querySelectorAll('[data-pid]').forEach(div => {
+    const aid = div.dataset.pid;
+    const key = id + '-' + aid;
+    const img = div.querySelector('img');
+    if (!img || img.src || photoLoadedSet.has(key)) return;
+    const src = (dest.heroPhotos || {})[aid];
+    if (!src) return;
+    img.onload = () => { img.classList.add('loaded'); photoLoadedSet.add(key); };
+    img.onerror = () => {
+      const wiki = dest.activities[aid]?.wiki;
+      if (!wiki) return;
+      fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(wiki))
+        .then(r => r.ok ? r.json() : null).then(j => {
+          if (!j) return;
+          const s = (j.originalimage?.source || j.thumbnail?.source || '').replace(/\/\d+px-/, '/640px-');
+          if (s) { img.onerror = null; img.onload = () => { img.classList.add('loaded'); photoLoadedSet.add(key); }; img.src = s; }
+        }).catch(() => {});
+    };
+    img.src = src;
+  });
+}
+
+// ------ RENDER ------
+function render(id) {
+  if (id !== activeDest) return;
+  const t = computeTotals(id, state);
+  document.getElementById('tb-cost').textContent = 'A$' + Math.round(t.total).toLocaleString();
+  document.getElementById('tb-days').textContent = t.days + ' days';
+  document.getElementById('tb-group').textContent = state.groupSize;
+  renderMap(id);
+}
+
+function updateSidebarCosts() {
+  Object.keys(DESTINATIONS).forEach(id => {
+    const dest = DESTINATIONS[id];
+    const rec = Object.entries(dest.bundles).find(([,b])=>b.recommended)?.[0] || Object.keys(dest.bundles)[0];
+    const t = computeTotals(id, toState(dest.bundles[rec]));
+    const el = document.getElementById('sb-cost-' + id);
+    if (el) el.textContent = 'from A$' + Math.round(t.total).toLocaleString();
+  });
+}
+
+function updateTotalbar() {
+  const tb = document.getElementById('totalbar');
+  if (document.body.classList.contains('tour-active')) return;
+  if (window.scrollY < 200) tb.classList.add('hidden'); else tb.classList.remove('hidden');
+}
+window.addEventListener('scroll', updateTotalbar);
+
+// ------ MAPS ------
+const osrmCache = new Map();
+async function getRoute(pts) {
+  const key = pts.map(c=>c.join(',')).join('|');
+  if (osrmCache.has(key)) return osrmCache.get(key);
+  try {
+    const r = await fetch('https://router.project-osrm.org/route/v1/driving/' + pts.map(c=>`${c[1]},${c[0]}`).join(';') + '?overview=full&geometries=geojson');
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (!j.routes?.[0]) return null;
+    const coords = j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+    osrmCache.set(key, coords);
+    return coords;
+  } catch { return null; }
+}
+
+function initMap(id) {
+  if (leafletMaps[id]) { setTimeout(() => leafletMaps[id].invalidateSize(), 200); return; }
+  const el = document.getElementById('map-' + id);
+  if (!el || typeof L === 'undefined') return;
+  try {
+    const dest = DESTINATIONS[id];
+    const m = L.map(el, {zoomControl:true, scrollWheelZoom:false}).setView(dest.mapView.center, dest.mapView.zoom);
+    m.zoomControl.setPosition('topright');
+    m.on('click', () => m.scrollWheelZoom.enable());
+    m.on('mouseout', () => m.scrollWheelZoom.disable());
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution:'© Esri', maxZoom:18}).addTo(m);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {attribution:'', maxZoom:18, opacity:0.85}).addTo(m);
+    leafletMaps[id] = m;
+    setTimeout(() => m.invalidateSize(), 300);
+    renderMap(id);
+  } catch(e) { console.log('Map init failed', e); }
+}
+
+function renderMap(id) {
+  const m = leafletMaps[id];
+  if (!m) return;
+  (mapMarkers[id]||[]).forEach(x=>m.removeLayer(x));
+  (mapLines[id]||[]).forEach(x=>m.removeLayer(x));
+  mapMarkers[id]=[]; mapLines[id]=[];
+  const dest = DESTINATIONS[id];
+  const accent = dest.accent;
+
+  dest.fixedStops.forEach(s => {
+    const icon = L.divIcon({className:'', html:`<div class="marker-dot fixed">${s.label}</div>`, iconSize:[22,22], iconAnchor:[11,11]});
+    mapMarkers[id].push(L.marker(s.coords, {icon}).addTo(m).bindPopup(`<span class="pop-meta">Hub</span><strong>${s.name}</strong>${s.desc}`));
+  });
+
+  state.selected.forEach(aid => {
+    const a = dest.activities[aid];
+    if (!a) return;
+    const icon = L.divIcon({
+      className:'',
+      html:`<div class="marker-dot${a.anchor?' anchor':''}" style="background:${a.anchor?'#E5BC7E':accent}">${a.anchor?'★':'•'}</div>`,
+      iconSize:a.anchor?[30,30]:[22,22], iconAnchor:a.anchor?[15,15]:[11,11]
+    });
+    mapMarkers[id].push(L.marker(a.coords, {icon}).addTo(m).bindPopup(`<span class="pop-meta">A$${a.cost[state.budget]} · ${a.days}d</span><strong>${a.name}</strong>${a.desc}`));
+  });
+
+  const addSeg = (pts, style, routed) => {
+    if (routed && pts.length>=2) {
+      getRoute(pts).then(c => { mapLines[id].push(L.polyline(c||pts, style).addTo(m)); });
+    } else { mapLines[id].push(L.polyline(pts, style).addTo(m)); }
+  };
+
+  const flight = {color:'#4A9CA5', weight:2.5, dashArray:'6 8'};
+  const road = {color:accent, weight:4};
+  const train = {color:accent, weight:3, dashArray:'10 4'};
+  const local = {color:accent, weight:2.5};
+
+  if (id === 'chile') {
+    const nActs = Array.from(state.selected).filter(aid => dest.activities[aid].coords[0]>=-42 && dest.activities[aid].coords[0]<=-33).sort((a,b)=>dest.activities[b].coords[0]-dest.activities[a].coords[0]).map(aid=>dest.activities[aid].coords);
+    addSeg([dest.fixedStops[0].coords,...nActs,dest.fixedStops[1].coords], state.bike==='none'?flight:road, true);
+    if (state.phases.p3) {
+      const cActs = Array.from(state.selected).filter(aid=>{const lat=dest.activities[aid].coords[0];return lat<-42&&lat>-50;}).sort((a,b)=>dest.activities[b].coords[0]-dest.activities[a].coords[0]).map(aid=>dest.activities[aid].coords);
+      addSeg([dest.fixedStops[1].coords,...cActs,dest.fixedStops[2].coords], road, true);
+    } else {
+      addSeg([dest.fixedStops[1].coords, dest.fixedStops[3].coords], flight, false);
+      addSeg([dest.fixedStops[3].coords, dest.fixedStops[2].coords], road, true);
+    }
+    const tdp = Array.from(state.selected).filter(aid=>dest.phases.p4.activities.includes(aid));
+    if (tdp.length) addSeg([dest.fixedStops[2].coords, dest.activities.torres_o.coords], road, true);
+    const arg = ['fitzroy','perito_moreno'].filter(aid=>state.selected.has(aid)).map(aid=>dest.activities[aid].coords);
+    if (arg.length) addSeg([dest.fixedStops[2].coords,...arg], flight, true);
+    if (state.selected.has('penguins')) addSeg([dest.fixedStops[3].coords, dest.activities.penguins.coords], flight, false);
+  }
+
+  else if (id === 'indonesia') {
+    const stopMap = {p1:0,p2:1,p3:2,p4:3};
+    const chain = [dest.fixedStops[0]];
+    if (state.phases.p2) chain.push(dest.fixedStops[1]);
+    if (state.phases.p3) chain.push(dest.fixedStops[2]);
+    if (state.phases.p4) chain.push(dest.fixedStops[3]);
+    for (let i=0;i<chain.length-1;i++) addSeg([chain[i].coords,chain[i+1].coords], flight, false);
+    Object.entries(dest.phases).forEach(([pid,phase]) => {
+      if (!state.phases[pid]) return;
+      const stop = dest.fixedStops[stopMap[pid]];
+      phase.activities.filter(aid=>state.selected.has(aid)).forEach(aid=>addSeg([stop.coords, dest.activities[aid].coords], local, false));
+    });
+    if (state.selected.has('raja_ampat')) addSeg([dest.fixedStops[2].coords, dest.activities.raja_ampat.coords], flight, false);
+    if (state.selected.has('orangutans')) addSeg([dest.fixedStops[0].coords, dest.activities.orangutans.coords], flight, false);
+  }
+
+  else if (id === 'japan') {
+    const stopMap = {p1:0, p2:1, p3:2, p4:3};
+    const seen = new Set();
+    const chain = Object.entries(dest.phases)
+      .filter(([pid]) => state.phases[pid])
+      .map(([pid]) => dest.fixedStops[stopMap[pid]])
+      .filter(s => { if (seen.has(s.id)) return false; seen.add(s.id); return true; });
+    for (let i = 0; i < chain.length - 1; i++) {
+      // Tokyo → Sapporo is a flight; all else is Shinkansen/drive
+      addSeg([chain[i].coords, chain[i+1].coords], i === 0 ? flight : train, false);
+    }
+    Object.entries(dest.phases).forEach(([pid, phase]) => {
+      if (!state.phases[pid]) return;
+      const stop = dest.fixedStops[stopMap[pid]];
+      phase.activities.filter(aid => state.selected.has(aid))
+        .forEach(aid => addSeg([stop.coords, dest.activities[aid].coords], local, false));
+    });
+    // Extension lines
+    if (state.selected.has('heli_hokkaido')) addSeg([dest.fixedStops[1].coords, dest.activities.heli_hokkaido.coords], flight, false);
+    if (state.selected.has('asahidake') && !state.phases.p3) addSeg([dest.fixedStops[2].coords, dest.activities.asahidake.coords], local, false);
+  }
+}
+
+// ------ TOUR ------
+const TOUR_KEY = 'trip-configurator-v1-seen';
+let tourIdx = 0;
+
+function positionTour() {
+  const steps = DESTINATIONS[activeDest].tourSteps;
+  const step = steps[tourIdx];
+  const target = document.querySelector('[' + step.attr + '="' + step.val + '"]');
+  const highlight = document.getElementById('tour-highlight');
+  const popup = document.getElementById('tour-popup');
+  if (!target) { if (tourIdx < steps.length-1){tourIdx++;positionTour();}else endTour(); return; }
+
+  document.getElementById('tour-step-num').textContent = 'Step ' + (tourIdx+1) + ' of ' + steps.length;
+  document.getElementById('tour-title').innerHTML = step.title;
+  document.getElementById('tour-body').textContent = step.body;
+  document.getElementById('tour-next').textContent = tourIdx === steps.length-1 ? 'Finish' : 'Next →';
+  document.getElementById('tour-dots').innerHTML = steps.map((_,i) => `<span class="dot${i===tourIdx?' active':''}"></span>`).join('');
+
+  highlight.style.opacity = '0';
+  const ph = popup.offsetHeight || 220, vh = window.innerHeight;
+  const tr = target.getBoundingClientRect();
+  const tTop = tr.top + window.scrollY;
+  const desiredTop = tr.height < vh - ph - 64 ? Math.max(20, (vh - ph - 24 - tr.height) / 2) : 20;
+  document.documentElement.style.scrollBehavior = 'auto';
+  window.scrollTo(0, Math.max(0, tTop - desiredTop));
+  document.documentElement.style.scrollBehavior = '';
+
+  requestAnimationFrame(() => {
+    const r = target.getBoundingClientRect();
+    const sy = window.scrollY, pad = 8;
+    const vTop = Math.max(r.top, 10), vBot = Math.min(r.bottom, vh - ph - 16);
+    const capH = Math.max(60, vBot - vTop);
+    highlight.style.top = (vTop + sy - pad) + 'px';
+    highlight.style.left = (r.left + window.scrollX - pad) + 'px';
+    highlight.style.width = (r.width + pad*2) + 'px';
+    highlight.style.height = (capH + pad*2) + 'px';
+    highlight.style.opacity = '1';
+  });
+}
+
+function startTour() {
+  tourIdx = 0;
+  document.body.classList.add('tour-active');
+  document.getElementById('totalbar').classList.add('hidden');
+  positionTour();
+}
+function endTour() {
+  document.body.classList.remove('tour-active');
+  updateTotalbar();
+  try { localStorage.setItem(TOUR_KEY, '1'); } catch {}
+}
+document.getElementById('tour-next').addEventListener('click', () => {
+  const steps = DESTINATIONS[activeDest].tourSteps;
+  if (tourIdx < steps.length-1) { tourIdx++; positionTour(); } else endTour();
+});
+document.getElementById('tour-skip').addEventListener('click', endTour);
+document.getElementById('tour-trap').addEventListener('click', endTour);
+document.getElementById('sidebar-tour-btn').addEventListener('click', startTour);
+document.getElementById('mobile-tour-btn').addEventListener('click', startTour);
+document.getElementById('scroll-top').addEventListener('click', () => window.scrollTo({top:0,behavior:'smooth'}));
+window.addEventListener('resize', () => { if (document.body.classList.contains('tour-active')) positionTour(); });
+
+// ------ INIT ------
+const hashDest = window.location.hash.replace('#','');
+const startDest = DESTINATIONS[hashDest] ? hashDest : 'chile';
+if (startDest !== 'chile') switchDest(startDest);
+else {
+  if (!openPhases.chile) openPhases.chile = new Set(['p1']);
+  const rec = Object.entries(DESTINATIONS.chile.bundles).find(([,b])=>b.recommended)?.[0]||'classic';
+  activeBundle = rec;
+  state = toState(DESTINATIONS.chile.bundles[rec]);
+  document.getElementById('totalbar').style.borderTopColor = DESTINATIONS.chile.accent;
+  buildAll('chile');
+  initMap('chile');
+  updateSidebarCosts();
+  updateTotalbar();
+}
+
+let tourSeen = false;
+try { tourSeen = localStorage.getItem(TOUR_KEY) === '1'; } catch {}
+if (!tourSeen) setTimeout(startTour, 900);
+
+</script>
+</body>
+</html>
