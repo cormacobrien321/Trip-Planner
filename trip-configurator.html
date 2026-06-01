@@ -237,16 +237,16 @@
   /* PER-DESTINATION ACCENTS */
   .dest-panel[data-dest="chile"]     { --accent:#E8623A; }
   .dest-panel[data-dest="indonesia"] { --accent:#FF7A47; }
-  .dest-panel[data-dest="japan"]     { --accent:#D94F7C; }
+  .dest-panel[data-dest="japan"]     { --accent:#BC002D; --accent-bright:#E8001A; }
   .dest-btn[data-dest="chile"].active     { border-left-color:#E8623A; }
   .dest-btn[data-dest="indonesia"].active { border-left-color:#FF7A47; }
-  .dest-btn[data-dest="japan"].active     { border-left-color:#D94F7C; }
+  .dest-btn[data-dest="japan"].active     { border-left-color:#BC002D; }
   .dest-btn[data-dest="chile"] .d-name em     { color:#E8623A; }
   .dest-btn[data-dest="indonesia"] .d-name em { color:#FF7A47; }
-  .dest-btn[data-dest="japan"] .d-name em     { color:#D94F7C; }
+  .dest-btn[data-dest="japan"] .d-name em     { color:#BC002D; }
   .mobile-tab[data-dest="chile"].active     { border-bottom-color:#E8623A; }
   .mobile-tab[data-dest="indonesia"].active { border-bottom-color:#FF7A47; }
-  .mobile-tab[data-dest="japan"].active     { border-bottom-color:#D94F7C; }
+  .mobile-tab[data-dest="japan"].active     { border-bottom-color:#BC002D; }
 
   /* === ADVANCED OPTIONS BLOCK === */
   .advanced-block {
@@ -311,6 +311,86 @@
   .ts-idesc { font-size: 11.5px; color: var(--stone-light); line-height: 1.4; margin-top: 1px; }
   .ts-icost { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sand); margin-top: 3px; }
   .ts-empty { padding: 10px 14px; font-size: 12px; color: var(--stone); font-style: italic; font-family: 'Fraunces', serif; }
+
+  /* JAPAN HERO IMAGE */
+  .japan-hero-img {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+    object-position: center 30%;
+    display: block;
+    border-radius: 0 0 8px 8px;
+    margin-bottom: 32px;
+    position: relative;
+  }
+  @media (min-width: 900px) { .japan-hero-img { height: 380px; } }
+  .japan-hero-wrap {
+    position: relative;
+    margin: 0 -16px;
+    overflow: hidden;
+    border-radius: 0 0 8px 8px;
+  }
+  @media (min-width: 900px) { .japan-hero-wrap { margin: 0 -32px; } }
+  .japan-hero-wrap::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(14,22,20,0) 0%,
+      rgba(14,22,20,0) 50%,
+      rgba(14,22,20,0.7) 100%
+    );
+    pointer-events: none;
+  }
+  /* Rising sun overlay — subtle red circle gradient behind the image */
+  .japan-hero-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse 60% 55% at 50% 38%,
+      rgba(188, 0, 45, 0.18) 0%,
+      rgba(188, 0, 45, 0.0) 70%
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+  .japan-hero-caption {
+    position: absolute;
+    bottom: 12px; right: 16px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+    z-index: 2;
+    font-style: italic;
+  }
+
+  /* Rising sun motif in the hero section itself */
+  #panel-japan .hero {
+    position: relative;
+    overflow: visible;
+  }
+  #panel-japan .hero::before {
+    content: "";
+    position: absolute;
+    top: -60px; right: -40px;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    border: 1px solid rgba(188,0,45,0.12);
+    pointer-events: none;
+    z-index: 0;
+  }
+  #panel-japan .hero::after {
+    content: "";
+    position: absolute;
+    top: -20px; right: 0;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    border: 1px solid rgba(188,0,45,0.08);
+    pointer-events: none;
+    z-index: 0;
+  }
+  #panel-japan .hero > * { position: relative; z-index: 1; }
 
 </style>
 </head>
@@ -418,6 +498,18 @@
             <div class="item"><div class="label">Sumo</div><div class="val">Jan 10–24 Tokyo</div></div>
           </div>
         </section>
+
+        <!-- JAPOW HERO IMAGE -->
+        <div class="japan-hero-wrap">
+          <img
+            class="japan-hero-img"
+            src="https://images.unsplash.com/photo-1548133644-3f14df8ff99b?w=1200&q=80&auto=format&fit=crop"
+            onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Niseko_Grand_Hirafu_winter.jpg/1200px-Niseko_Grand_Hirafu_winter.jpg'"
+            alt="Skier in deep Japow powder, Hokkaido"
+            loading="lazy"
+          />
+          <span class="japan-hero-caption">Hokkaido backcountry · Japow</span>
+        </div>
         <section class="section" data-tour-japan="bundles"><div class="section-head"><h2><span class="num">01</span>Pick a <em>bundle</em></h2><p>Three versions of the trip. Each pre-fills everything. Pick one, tweak in Advanced below.</p></div><div class="bundles" id="japan-bundles-row"></div></section>
         <section class="section" data-tour-japan="map"><div class="section-head"><h2><span class="num">02</span>The <em>route</em></h2><p>Tokyo → Hokkaido → Furano → south. Updates with every choice.</p></div><div class="map-container"><div class="dest-map" id="map-japan"></div><div class="map-legend"><div class="l-item"><span class="l-pin anchor"></span>Anchor</div><div class="l-item"><span class="l-pin"></span>Activity</div><div class="l-item"><span class="l-pin fixed"></span>Hub</div><div class="l-item"><span class="l-line"></span>Ground/Shinkansen</div><div class="l-item"><span class="l-line dashed"></span>Flight</div></div></div></section>
 
@@ -648,7 +740,7 @@ indonesia: {
 },
 
 japan: {
-  accent:'#D94F7C', mapView:{center:[40.5,138],zoom:5},
+  accent:'#BC002D', mapView:{center:[40.5,138],zoom:5},
   intlFlight:1100, crossing:{on:280,off:200}, transfers:200,
   perday:{cheap:{accommodation:60,food:40},medium:{accommodation:180,food:80},expensive:{accommodation:480,food:180}},
   // bikeCosts here = "getting around" per person: JR Pass + shuttles / JR Pass + van / private transfers
