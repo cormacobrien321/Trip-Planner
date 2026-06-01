@@ -312,6 +312,79 @@
   .ts-icost { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--sand); margin-top: 3px; }
   .ts-empty { padding: 10px 14px; font-size: 12px; color: var(--stone); font-style: italic; font-family: 'Fraunces', serif; }
 
+
+  /* ── JAPAN HERO IMAGE ── */
+  #panel-japan .hero {
+    position: relative;
+    padding-bottom: 0;
+    overflow: hidden;
+    /* min-height so the section has room for the image behind */
+    min-height: 480px;
+  }
+  @media (min-width: 900px) { #panel-japan .hero { min-height: 560px; } }
+
+  /* The background image sits behind everything */
+  .japan-hero-bg {
+    position: absolute;
+    inset: -20px -16px -0px -16px; /* bleed past the wrap padding */
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Niseko_ski_resort_Hokkaido.jpg/1280px-Niseko_ski_resort_Hokkaido.jpg');
+    background-size: cover;
+    background-position: center 40%;
+    z-index: 0;
+  }
+  @media (min-width: 900px) { .japan-hero-bg { inset: -20px -32px 0 -32px; } }
+
+  /* Multi-layer gradient: dark top for text, dark bottom for stats, red glow middle */
+  .japan-hero-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      /* dark vignette top — keeps headline readable */
+      linear-gradient(to bottom,
+        rgba(10,6,6,0.82) 0%,
+        rgba(10,6,6,0.55) 35%,
+        rgba(10,6,6,0.3) 55%,
+        rgba(10,6,6,0.65) 75%,
+        rgba(10,6,6,0.88) 100%
+      ),
+      /* rising sun red glow in the middle */
+      radial-gradient(ellipse 55% 40% at 50% 52%,
+        rgba(188,0,45,0.35) 0%,
+        rgba(188,0,45,0.0) 100%
+      );
+  }
+
+  /* All hero content sits above the image */
+  #panel-japan .hero > * { position: relative; z-index: 1; }
+
+  /* Force title to white over the image */
+  #panel-japan .hero h1 { color: #fff; }
+  #panel-japan .hero h1 em { color: #FF1A3C; text-shadow: 0 0 40px rgba(188,0,45,0.6); }
+  #panel-japan .hero .eyebrow { color: rgba(255,255,255,0.65); }
+  #panel-japan .hero .lead { color: rgba(255,255,255,0.75); }
+  #panel-japan .hero-stats { border-top-color: rgba(255,255,255,0.15); }
+  #panel-japan .hero-stats .item .label { color: rgba(255,255,255,0.5); }
+  #panel-japan .hero-stats .item .val { color: #fff; }
+  #panel-japan .hero { padding-bottom: 36px; }
+
+  /* Rising sun rings — decorative, top-right corner */
+  .japan-hero-sun {
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 360px; height: 360px;
+    z-index: 0; pointer-events: none;
+  }
+  .japan-hero-sun::before,
+  .japan-hero-sun::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(188,0,45,0.25);
+  }
+  .japan-hero-sun::before { inset: 0; }
+  .japan-hero-sun::after  { inset: 40px; border-color: rgba(188,0,45,0.15); }
+
 </style>
 </head>
 <body>
@@ -362,8 +435,8 @@
     <div class="dest-panel active" id="panel-chile" data-dest="chile">
       <div class="wrap">
         <section class="hero">
-          <div class="eyebrow">January 2027 · Adelaide → Patagonia</div>
-          <h1>One country.<em>End to end.</em></h1>
+          <div class="eyebrow">January 2027 · Adelaide → Patagonia · the Grand Tour</div>
+          <h1>Chile —<em>the Grand Tour.</em></h1>
           <p class="lead">A motorbike trip from Santiago to the southern ice fields. Configure your version below.</p>
           <div class="hero-stats">
             <div class="item"><div class="label">Distance</div><div class="val"><em>3,200+</em> km</div></div>
@@ -386,7 +459,7 @@
       <div class="wrap">
         <section class="hero">
           <div class="eyebrow">Dry season · Adelaide → the islands</div>
-          <h1>Six thousand islands.<em>Pick a few.</em></h1>
+          <h1>Adventure<em>in Paradise.</em></h1>
           <p class="lead">From Bali warm-up to Komodo liveaboard, with Rinjani in between. Surf Lombok, dive the world's best reefs, hike a volcano at dawn.</p>
           <div class="hero-stats">
             <div class="item"><div class="label">Islands hit</div><div class="val"><em>4–8</em></div></div>
@@ -408,8 +481,10 @@
     <div class="dest-panel" id="panel-japan" data-dest="japan">
       <div class="wrap">
         <section class="hero">
+          <div class="japan-hero-bg"></div>
+          <div class="japan-hero-sun"></div>
           <div class="eyebrow">January 2027 · Tokyo → Hokkaido → home</div>
-          <h1>Ski hard.<em>Party harder.</em></h1>
+          <h1>Head first<em>into JAPOW!</em></h1>
           <p class="lead">Two nights in Tokyo for sumo and bar chaos. Then a private chalet in Hokkaido — the world's best powder — for two weeks. The good skiers do backcountry. The rest do the groomers. Everyone meets at the bar by 5pm.</p>
           <div class="hero-stats">
             <div class="item"><div class="label">Group size</div><div class="val"><em>6–10</em> people</div></div>
